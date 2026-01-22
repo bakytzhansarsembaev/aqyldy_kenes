@@ -1,0 +1,19 @@
+{
+  "intent": "freezing",
+  "subintent": "freezing_setter",
+  "version": "1.0.0",
+  "owner": "ops@company",
+  "description": "Постановление заморозки (временного отдыха для подписчиков) для пользователей портала",
+  "policy": {
+    "maximum_freezing_days": 90,
+    "last_freezing": "1900-01-01T00:00:00Z"
+  },
+  "rules_of_speaking": {
+    "lang": "ru",
+    "tone": "нейтральный",
+    "must_include": ["Максимальный срок заморозки — {maximum_freezing_days} дней"],
+    "forbidden": ["мы заблокируем ваш аккаунт"]
+  },
+  "created_at": "2025-09-02T10:00:00Z",
+  "updated_at": "2025-09-02T10:30:00Z"
+}

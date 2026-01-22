@@ -1,0 +1,21 @@
+{
+  "intent": "cashback",
+  "subintent": "withdrawal",
+  "version": "1.0.0",
+  "owner": "ml_team",
+  "description": "Правила вывода кешбэка",
+  "policy": {
+    "minimum_withdraw_sum": 6000,
+    "payout_status_days_approved": 1000,
+    "payout_status_days_is_considering": 1000,
+    "currency": "kazakhstani_tenge"
+  },
+  "rules_of_speaking": {
+    "lang": "ru",
+    "tone": "дружелюбный",
+    "must_include": ["сроки рассмотрения — до {payout_status_days_is_considering} дней"],
+    "forbidden": []
+  },
+  "created_at": "2025-09-02T10:00:00Z",
+  "updated_at": "2025-09-02T10:30:00Z"
+}

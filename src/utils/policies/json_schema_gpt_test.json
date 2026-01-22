@@ -1,0 +1,18 @@
+{
+        "type": "json_schema",
+        "json_schema": {
+            "name": "DialogueType",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "type_of_dialog": {
+                        "type": "string",
+                        "enum": ["advert", "spam", "direct_call"]
+                    }
+                },
+                "required": ["type_of_dialog"],
+                "additionalProperties": false
+            },
+            "strict": true
+        }
+    }

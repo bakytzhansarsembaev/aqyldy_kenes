@@ -1,0 +1,8 @@
+##################################################################################
+# we involved three different version of ml_chat_bot:
+# 1st_stable_version: doesn't contain task_helper bot, but it's most stable, doesn't consume much openai tokens. The queue in RabbitMQ almost never accumulates. It is recommended to use this version if insoluble problems with the queue arise.
+
+# 2nd_stable_version: contains task_helper bot. It is recommended if actual version doesn't work accurately if frequent errors occur.
+
+# actual_version: latest working script.
+

@@ -1,0 +1,20 @@
+{
+  "intent": "freezing",
+  "subintent": "freezing_remover",
+  "version": "1.0.0",
+  "owner": "ml_team",
+  "description": "Снятие заморозки для пользователей портала",
+  "policy": {
+    "last_freezing": "1900-01-01T00:00:00Z",
+    "list_of_freezings": [
+    ]
+  },
+  "rules_of_speaking": {
+    "lang": "ru",
+    "tone": "деловой, вежливый",
+    "must_include": [],
+    "forbidden": []
+  },
+  "created_at": "2025-09-02T10:00:00Z",
+  "updated_at": "2025-09-02T10:30:00Z"
+}

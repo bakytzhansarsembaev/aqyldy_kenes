@@ -1,0 +1,23 @@
+{
+  "intent": "cashback",
+  "subintent": "conditions",
+  "version": "1.0.0",
+  "owner": "ml_team",
+  "description": "Правила кэшбэка (и дополнительная информация по нему) на платформе Qalan.kz",
+  "policy": {
+    "minimum_withdraw_sum": 6000,
+    "diamond_explanation": "«Алмазы» дают за выполнение ежедневного Персонального обучения. Их можно снять в качестве кэшбэка. За повторное выполнение Персонального обучения алмазы не выдаются.",
+    "coins_explanation": "«Монеты» выдаются также за выполнение персонального обучения, это дополнительный бонус к алмазам, в отличие от которых можно получить дополнительно за повторное прохождение Персонального обучения.",
+    "diamondToTengeConversionRate": "1 алмаз = 1 тенге",
+    "diamondToCoinConversionRate": "1 алмаз = 20 монет",
+    "currency": "kazakhstani_tenge"
+  },
+  "rules_of_speaking": {
+    "lang": "ru",
+    "tone": "дружелюбный",
+    "must_include": ["минимальная сумма к выводу — {minimum_withdraw_sum}{currency_symbol}"],
+    "forbidden": []
+  },
+  "created_at": "2025-09-02T10:00:00Z",
+  "updated_at": "2025-09-02T10:30:00Z"
+}
