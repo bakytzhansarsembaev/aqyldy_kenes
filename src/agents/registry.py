@@ -5,6 +5,7 @@ from src.agents.cashback import cashback_main_agent, cashback_withdrawal_agent, 
 from src.agents.freezing import freezing_main_agent, freezing_setter_agent, freezing_remover_agent, freezing_adviser_agent, freezing_status_checker_agent
 from src.agents.task_helper import task_helper_helper_agent, task_helper_main_agent, task_helper_changer_agent
 from src.agents.mentor_support import support_main_agent, support_tech_problem_agent, support_motivation_agent, support_emotional_agent, support_navigation_agent
+from src.agents.mentor import mentor_agent
 from src.agents import neutral_agent
 
 
@@ -34,4 +35,6 @@ AGENT_REGISTRY = {
     (IntentEnum.task_problems, None): task_helper_main_agent.TaskHelperMainAgent,
     (IntentEnum.task_problems, TaskProblemsSubIntentEnum.task_problems): task_helper_helper_agent.TaskHelperHelperAgent,
     (IntentEnum.task_problems, TaskProblemsSubIntentEnum.change_task): task_helper_changer_agent.TaskHelperChangerAgent,
+    # mentor agent (для эскалаций к человеку-ментору)
+    (IntentEnum.mentor, None): mentor_agent.MentorAgent,
 }

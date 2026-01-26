@@ -169,6 +169,16 @@ class TaskHelperChanger(BaseModel):
     out_of_scope_action: str
     hard_limits: str
 
+
+class MentorPolicy(BaseModel):
+    """Policy для MentorAgent - эскалация к человеку-ментору"""
+    platform_name: str
+    audience: str
+    domain_scope: str
+    escalation_message: str
+    response_style: str
+
+
 # class SupportTechProblems(BaseModel):
 
 # class SupportNavigation(BaseModel):
@@ -194,6 +204,8 @@ PolicyModels = {
     (IntentEnum.task_problems, None): TaskHelperMain,
     (IntentEnum.task_problems, TaskProblemsSubIntentEnum.task_problems): TaskHelperHelper,
     (IntentEnum.task_problems, TaskProblemsSubIntentEnum.change_task): TaskHelperChanger,
+    # mentor (для эскалаций)
+    (IntentEnum.mentor, None): MentorPolicy,
     # (IntentEnum.support, SupportSubIntentEnum.navigation): SupportNavigation,
     # (IntentEnum.support, SupportSubIntentEnum.tech_problems): SupportTechProblems,
                 }
@@ -230,6 +242,9 @@ POLICY_PATHS = {
     ("task_problems", None): POLICY_ROOT/"task_helper_main.json",
     ("task_problems", "task_problems"): POLICY_ROOT/"task_helper_helper.json",
     ("task_problems", "change_task"): POLICY_ROOT/"task_helper_changer.json",
+
+    # mentor
+    ("mentor", None): POLICY_ROOT/"mentor_main.json",
 }
 
 
