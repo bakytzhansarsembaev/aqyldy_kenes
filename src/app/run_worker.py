@@ -34,38 +34,41 @@ def post_ml_response(data: Dict):
 
 
 def build_response_dict(input_json: Dict, state: Optional[BotState] = None) -> Dict:
-    # Парсим JSON-ответ от агента
-    try:
-        agent_response = json.loads(state.agent_answer)
-        answer_text = agent_response.get("answer", state.agent_answer)
-        decision = agent_response.get("decision", "response")
+    # agent_answer - это dict с ключами: response, intent, subintent
+    agent_response = state.agent_answer or {}
 
-        # ------------------------------------------------------------------------------------------------тут надо подумать 
-        # Если агент не смог ответить - переключаем на ментора
-        if decision == "pass" or answer_text is None:
-            return {
-                "answer": "",
-                "tag": {
-                    "intent": state.intent,
-                    "subintent": state.subintent
-                },
-                "prediction": 1,
-                "mode": True,  # Переключение на ментора
-                "close_session": False,
-                "session_id": input_json["session_id"],
-                "pupil_id": input_json["pupil_id"],
-                "sender_type": input_json["sender_type"],
-                "full_context": input_json["full_context"],
-                "context": input_json["context"],
-                "question": state.user_message,
-                "modified_message_time": input_json["modified_message_time"],
-                "session_context": input_json["session_context"]
-            }
-            
+    # Извлекаем текст ответа из response (может быть JSON-строкой)
+    raw_response = agent_response.get("response", "")
+
+    # Пробуем распарсить response как JSON (агент может вернуть {"decision": "...", "answer": "..."})
+    try:
+        parsed = json.loads(raw_response) if isinstance(raw_response, str) else raw_response
+        answer_text = parsed.get("answer", raw_response)
+        decision = parsed.get("decision", "response")
     except (json.JSONDecodeError, TypeError, AttributeError):
-        # Если не JSON или ошибка парсинга - используем как есть
-        answer_text = state.agent_answer
+        answer_text = raw_response
         decision = "response"
+
+    # Если агент не смог ответить - переключаем на ментора
+    if decision == "pass" or answer_text is None:
+        return {
+            "answer": "",
+            "tag": {
+                "intent": state.intent,
+                "subintent": state.subintent
+            },
+            "prediction": 1,
+            "mode": True,  # Переключение на ментора
+            "close_session": False,
+            "session_id": input_json["session_id"],
+            "pupil_id": input_json["pupil_id"],
+            "sender_type": input_json["sender_type"],
+            "full_context": input_json["full_context"],
+            "context": input_json["context"],
+            "question": state.user_message,
+            "modified_message_time": input_json["modified_message_time"],
+            "session_context": input_json["session_context"]
+        }
         
     response_dict = {"answer": answer_text,
                      "tag": {"intent": state.intent,

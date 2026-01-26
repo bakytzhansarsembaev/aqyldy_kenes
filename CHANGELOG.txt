@@ -1,0 +1,119 @@
+================================================================================
+CHANGELOG - Chat Bot Project (Qalan.kz)
+Дата: 2026-01-26
+================================================================================
+
+ИСПРАВЛЕНИЯ И ИЗМЕНЕНИЯ
+================================================================================
+
+1. src/router/decision_router/graph_state.py (строка 32)
+   - БЫЛО:   agent_answer: Optional[str] = None
+   - СТАЛО:  agent_answer: Optional[Dict[str, Any]] = None
+   - ПРИЧИНА: Агенты возвращают dict с ключами (response, intent, subintent),
+              а не строку. Pydantic выдавал ValidationError.
+
+2. src/app/run_worker.py (функция build_response_dict)
+   - БЫЛО:   Парсинг agent_answer как JSON-строки, поиск ключа "answer"
+   - СТАЛО:  Прямая работа с dict, извлечение response и парсинг внутреннего JSON
+   - ПРИЧИНА: agent_answer теперь dict, а ответ агента в ключе "response"
+
+3. src/tests/interactive_test.py
+   - БЫЛО:   Обращение к result.intent, result.agent_answer как к атрибутам
+   - СТАЛО:  Использование result.get("intent"), result.get("agent_answer")
+   - ПРИЧИНА: LangGraph возвращает dict, а не объект BotState
+
+4. src/tools/services/task_service.py
+   - ДОБАВЛЕНО: Поддержка USE_MOCK_SERVICES
+   - Импорт mock_get_current_task при USE_MOCK_SERVICES=true
+   - Возврат mock данных вместо реального API вызова
+   - ПРИЧИНА: Для тестирования без доступа к API
+
+================================================================================
+
+РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ
+================================================================================
+
+Команда запуска:
+  python -m src.tests.interactive_test
+
+Тестовые сообщения и результаты:
+
+1. "Привет! Как дела?"
+   - Intent: neutral (confidence: 0.95)
+   - Ответ: "Привет! Всё хорошо, спасибо. Чем могу помочь?"
+   - Статус: OK
+
+2. "Как мне заморозить подписку?"
+   - Intent: freezing (confidence: 0.98)
+   - Ответ: Уточняет - объяснить заморозку или поставить
+   - Статус: OK
+
+3. "Не понимаю как решить задачу 2x + 5 = 15"
+   - Intent: task_problems (confidence: 0.98)
+   - Ответ: Направляет ученика, помогает разобраться
+   - Mock задача: "Решите уравнение: 2x + 5 = 15"
+   - Статус: OK
+
+================================================================================
+
+КОНФИГУРАЦИЯ
+================================================================================
+
+Текущие настройки (src/configs/settings.py):
+- USABLE_BRANCH: TEST_URL (https://test.qalan.kz)
+- DEFAULT_GPT_MODEL: gpt-5
+- USE_MOCK_SERVICES: true (для тестирования без API)
+- USABLE_RABBIT_URL: TEST_RABBIT
+- USABLE_RABBIT_QUEUE: messages_rus
+
+Переменные окружения (.env):
+- OPENAI_API_KEY
+- OPENAI_API_KEY_TASK_HELPER
+- QALAN_MAIN_TOKEN
+
+================================================================================
+
+ЗАРЕГИСТРИРОВАННЫЕ АГЕНТЫ (src/agents/registry.py)
+================================================================================
+
+Intent: neutral
+  - NeutralAgent
+
+Intent: cashback
+  - CashbackMainAgent
+  - CashbackWithdrawalAgent (subintent: withdrawal)
+  - CashbackConditionsAgent (subintent: conditions)
+  - CashbackHistoryAgent (subintent: cashback_history)
+
+Intent: freezing
+  - FreezingMainAgent
+  - FreezingSetterAgent (subintent: freezing_setter)
+  - FreezingRemoverAgent (subintent: freezing_remover)
+  - FreezingAdviserAgent (subintent: freezing_advice)
+  - FreezingStatusCheckerAgent (subintent: freezing_status_check)
+
+Intent: support
+  - SupportMainAgent
+  - SupportMotivationAgent (subintent: motivation)
+  - SupportTechProblemsAgent (subintent: tech_problems)
+  - SupportNavigationAgent (subintent: navigation)
+  - SupportEmotionalAgent (subintent: emotional)
+
+Intent: task_problems
+  - TaskHelperMainAgent
+  - TaskHelperHelperAgent (subintent: task_problems)
+  - TaskHelperChangerAgent (subintent: change_task)
+
+================================================================================
+
+ИЗВЕСТНЫЕ ПРОБЛЕМЫ
+================================================================================
+
+1. Intent "mentor" не зарегистрирован в AGENT_REGISTRY
+   - Классификатор иногда возвращает "mentor" вместо "task_problems"
+   - Решение: добавить маппинг или обновить классификатор
+
+2. requirements.txt поврежден (пробелы между символами)
+   - Рекомендуется пересоздать файл
+
+================================================================================

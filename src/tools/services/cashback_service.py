@@ -1,9 +1,18 @@
 import requests, json
-from src.configs.settings import USER_CASHBACKS, headers1, USER_LOGIN_PASSWORDS_URL, USER_PAYMENTS, USER_PAYOUTS
+from src.configs.settings import USER_CASHBACKS, headers1, USER_LOGIN_PASSWORDS_URL, USER_PAYMENTS, USER_PAYOUTS, USE_MOCK_SERVICES
+
+if USE_MOCK_SERVICES:
+    from src.tools.services.mock_services import (
+        mock_cashback_sum, mock_check_users_password,
+        mock_check_payments, mock_check_payouts
+    )
 
 
 def cashback_sum(user_id: str):
     # какая сумма доступна для снятия
+    if USE_MOCK_SERVICES:
+        return mock_cashback_sum(user_id)
+
     url = USER_CASHBACKS.format(user_id)
     try:
         response = requests.get(url=url, headers=headers1)
@@ -22,6 +31,9 @@ def cashback_sum(user_id: str):
 
 def check_users_password(user_id: str):
     # логин и пароль user-а
+    if USE_MOCK_SERVICES:
+        return mock_check_users_password(user_id)
+
     url = USER_LOGIN_PASSWORDS_URL.format(str(user_id))
     try:
         response = requests.get(url=url, headers=headers1)
@@ -40,6 +52,8 @@ def check_users_password(user_id: str):
 
 def check_payments(user_id: str):
     # список начислений кэшбэка с датой и суммой
+    if USE_MOCK_SERVICES:
+        return mock_check_payments(user_id)
 
     url = USER_CASHBACKS.format(str(user_id))
     try:
@@ -66,6 +80,9 @@ def check_payments(user_id: str):
 
 def check_payouts(user_id: str):
     # список снятий кэшбэка с датой и суммой
+    if USE_MOCK_SERVICES:
+        return mock_check_payouts(user_id)
+
     url = USER_PAYOUTS.format(str(user_id))
     try:
         response = requests.get(url=url, headers=headers1)

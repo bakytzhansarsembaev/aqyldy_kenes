@@ -1,6 +1,12 @@
+import os
+from dotenv import load_dotenv
+
+# Загружаем переменные из .env файла
+load_dotenv()
+
 # openai configs
-OPENAI_API_KEY_BASE = None
-OPENAI_API_KEY_TASK_HELPER = None
+OPENAI_API_KEY_BASE = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY_TASK_HELPER = os.getenv("OPENAI_API_KEY_TASK_HELPER", OPENAI_API_KEY_BASE)
 ASSISTANT_ID_RUS = 'asst_8VyYl7hjshNOI3zwifUCrNal'
 ASSISTANT_ID_KAZ = 'asst_po2uHM4YGXasWM3D9GKRPB62'
 
@@ -24,6 +30,9 @@ gpt_5_2 = "gpt-5.2"
 USABLE_BRANCH = TEST_URL
 DEFAULT_GPT_MODEL = gpt_model_5
 
+# Mock mode для тестирования без API
+USE_MOCK_SERVICES = os.getenv("USE_MOCK_SERVICES", "true").lower() == "true"
+
 # dateFormat
 date_format = '%Y-%m-%d %H:%M:%S'
 
@@ -38,7 +47,7 @@ USABLE_RABBIT_URL = TEST_RABBIT
 USABLE_RABBIT_QUEUE = RABBIT_RUSSIAN
 
 # Qalan.kz API main_token
-MAIN_TOKEN = None
+MAIN_TOKEN = os.getenv("QALAN_MAIN_TOKEN")
 headers1 = {"Authorization" : "Bearer {}".format(MAIN_TOKEN)}
 
 
