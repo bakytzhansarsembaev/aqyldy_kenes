@@ -1,3 +1,4 @@
+import pytest
 from src.tools.storage.state_store.redis_usage.redis_connection import redis_connection
 from typing import Dict, Any, Optional
 from src.tools.storage.state_store.redis_usage.redis_usage import get_user, save_user
@@ -58,6 +59,7 @@ def test_classifier(test_data: Dict[str, Any] = None):
     return classifier_result
 
 
+@pytest.mark.redis
 def test_save_classifier_result(test_data: Dict[str, Any] = None):
     if test_data is None:
         test_data = test_user_data()

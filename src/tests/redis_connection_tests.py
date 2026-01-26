@@ -1,3 +1,4 @@
+import pytest
 from src.tools.storage.state_store.redis_usage.redis_connection import redis_connection
 from typing import Dict, Any, Optional
 from src.tools.storage.state_store.redis_usage.redis_usage import get_user, save_user
@@ -22,6 +23,7 @@ def test_user_data():
     return user_data
 
 
+@pytest.mark.redis
 def test_save_data(test_data: Dict[str, Any] = None):
     if test_data is None:
         test_data = test_user_data()
@@ -38,6 +40,7 @@ def test_save_data(test_data: Dict[str, Any] = None):
         raise
 
 
+@pytest.mark.redis
 def test_get_data(test_data: Dict[str, Any] = None):
     if test_data is None:
         test_data = test_user_data()
@@ -50,6 +53,7 @@ def test_get_data(test_data: Dict[str, Any] = None):
         raise
 
 
+@pytest.mark.redis
 def test_clean_up_data(test_data: Dict[str, Any] = None):
     if test_data is None:
         test_data = test_user_data()

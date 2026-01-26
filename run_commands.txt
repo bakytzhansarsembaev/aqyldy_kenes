@@ -1,0 +1,100 @@
+# =====================================================
+# КОМАНДЫ ДЛЯ CHAT BOT PROJECT
+# =====================================================
+
+# -----------------------------------------------------
+# 1. УСТАНОВКА ЗАВИСИМОСТЕЙ
+# -----------------------------------------------------
+pip install -r requirements.txt
+
+# -----------------------------------------------------
+# 2. ЗАПУСК ТЕСТОВ
+# -----------------------------------------------------
+
+# === НА СЕРВЕРЕ (есть Redis) ===
+# Запуск всех тестов
+python -m pytest src/tests/ -v
+
+# === ЛОКАЛЬНО (нет Redis) ===
+# Запуск без Redis тестов
+python -m pytest src/tests/ -v -m "not redis"
+
+# Запуск без Redis и без slow тестов (быстрая проверка)
+python -m pytest src/tests/ -v -m "not redis and not slow"
+
+# === КОНКРЕТНЫЕ ТЕСТЫ ===
+python -m pytest src/tests/test_latex_processor.py -v      # LaTeX процессор
+python -m pytest src/tests/test_task_service.py -v         # Task сервис
+python -m pytest src/tests/test_metrics.py -v              # Метрики
+python -m pytest src/tests/test_mentor_agent.py -v         # Mentor агент
+
+# === ДОПОЛНИТЕЛЬНО ===
+# Запуск тестов с покрытием
+python -m pytest src/tests/ -v --cov=src --cov-report=term-missing
+
+# Запуск только быстрых тестов (без API вызовов)
+python -m pytest src/tests/ -v -m "not slow"
+
+# -----------------------------------------------------
+# 3. ПРОВЕРКА ГОТОВНОСТИ К ПРОДУ
+# -----------------------------------------------------
+
+# Проверка синтаксиса Python файлов
+python -m py_compile src/app/mp_observer.py
+python -m py_compile src/app/run_worker.py
+python -m py_compile src/graph/graph_builder.py
+
+# Проверка импортов основных модулей
+python -c "from src.configs.settings import *; print('Settings OK')"
+python -c "from src.graph.graph_builder import *; print('Graph Builder OK')"
+python -c "from src.agents.registry import *; print('Agents Registry OK')"
+python -c "from src.tools.monitoring.metrics import metrics_collector; print('Metrics OK')"
+
+# Проверка подключения к Redis
+python -c "from src.tools.storage.state_store.redis_usage.redis_connection import redis_connection; redis_connection.ping(); print('Redis OK')"
+
+# Проверка .env файла
+python -c "from src.configs.settings import OPENAI_API_KEY_BASE, MAIN_TOKEN; assert OPENAI_API_KEY_BASE, 'OPENAI_API_KEY not set'; assert MAIN_TOKEN, 'QALAN_MAIN_TOKEN not set'; print('.env OK')"
+
+# Проверка что USE_MOCK_SERVICES выключен для прода
+python -c "from src.configs.settings import USE_MOCK_SERVICES; print(f'USE_MOCK_SERVICES = {USE_MOCK_SERVICES}'); assert not USE_MOCK_SERVICES, 'WARNING: Mock services enabled!'"
+
+# Проверка USABLE_BRANCH (должен быть PROD_URL для прода)
+python -c "from src.configs.settings import USABLE_BRANCH, PROD_URL; print(f'USABLE_BRANCH = {USABLE_BRANCH}'); print('PROD' if USABLE_BRANCH == PROD_URL else 'TEST')"
+
+# -----------------------------------------------------
+# 4. ЗАПУСК МЕТРИК
+# -----------------------------------------------------
+
+# Просмотр текущих метрик (summary в консоль)
+python -c "from src.tools.monitoring.metrics import metrics_collector; metrics_collector.print_summary()"
+
+# Экспорт метрик в JSON файл (logs/metrics.json)
+python -c "from src.tools.monitoring.metrics import metrics_collector; path = metrics_collector.export_metrics(); print(f'Metrics exported to: {path}')"
+
+# Получить health status
+python -c "from src.tools.monitoring.metrics import get_health_status; import json; print(json.dumps(get_health_status(), indent=2, ensure_ascii=False))"
+
+# Сбросить метрики
+python -c "from src.tools.monitoring.metrics import metrics_collector; metrics_collector.reset(); print('Metrics reset')"
+
+# -----------------------------------------------------
+# 5. ЗАПУСК ПРИЛОЖЕНИЯ
+# -----------------------------------------------------
+
+# Запуск основного воркера (RabbitMQ consumer)
+python -m src.app.mp_observer
+
+# Запуск интерактивного теста (для отладки)
+python -m src.tests.interactive_test
+
+# -----------------------------------------------------
+# 6. ПОЛНАЯ ПРОВЕРКА ПЕРЕД ДЕПЛОЕМ
+# -----------------------------------------------------
+
+# Запустить все проверки одной командой:
+python -m pytest src/tests/ -v && \
+python -c "from src.configs.settings import *; print('Settings OK')" && \
+python -c "from src.graph.graph_builder import *; print('Graph OK')" && \
+python -c "from src.agents.registry import *; print('Agents OK')" && \
+echo "=== ALL CHECKS PASSED ==="

@@ -106,7 +106,8 @@ def test_agent_class(test_data: Dict[str, Any] = None):
         # subintent=state.subintent,
         backend_tools={"password": "12345678", "username": "+7-777-111-11-11"},  # фиктивный логин/пароль
         context_data=state.summary,
-        policy_loader=PolicyLoader()
+        policy_loader=PolicyLoader(),
+        user_id=state.user_id
     )
 
     print(4)
