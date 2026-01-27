@@ -15,8 +15,15 @@ def get_state_from_redis(user_id: str) -> Optional[BotState]:
     return BotState.model_validate(data)
 
 
-def save_state_into_redis(user_id, state: BotState):
+def save_state_into_redis(user_id, state: BotState, ttl: int = 7200):
     redis_connection.set(
         user_id,
-        state.model_dump_json()
+        state.model_dump_json(),
+        ex=ttl
     )
+
+
+def delete_state_from_redis(user_id: str) -> bool:
+    """Удаляет состояние пользователя из Redis. Возвращает True если удалено."""
+    deleted = redis_connection.delete(user_id)
+    return deleted > 0

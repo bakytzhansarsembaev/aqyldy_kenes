@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 from src.router.decision_router.graph_state import BotState
 from src.graph.graph_builder import build_graph
 # from src.tools.services.push_reactions.pushes import check_message_for_push
@@ -23,14 +24,25 @@ def run_event(input_json: Dict) -> Dict:
 
 def post_ml_response(data: Dict):
     url = ML_RESPONSE.format(USABLE_BRANCH)
-    event_response = requests.post(
-        url=url,
-        headers={},
-        json=data
-    )
+    last_err = None
+    for attempt in range(3):
+        try:
+            event_response = requests.post(
+                url=url,
+                headers={},
+                json=data,
+                timeout=10,
+            )
+            if event_response.ok:
+                return
+            last_err = RuntimeError(f"Post failed: {event_response.status_code} body={event_response.text[:300]}")
+        except requests.RequestException as e:
+            last_err = e
 
-    if not event_response.ok:
-        raise RuntimeError(f"Post failed: {event_response.status_code}")
+        # небольшой backoff; если совсем плохо - упадем и воркер сможет повторить
+        time.sleep(0.5 * (attempt + 1))
+
+    raise RuntimeError(f"Post failed after retries: {last_err}")
 
 
 def build_response_dict(input_json: Dict, state: Optional[BotState] = None) -> Dict:
@@ -53,10 +65,7 @@ def build_response_dict(input_json: Dict, state: Optional[BotState] = None) -> D
     if decision == "pass" or answer_text is None:
         return {
             "answer": "",
-            "tag": {
-                "intent": state.intent,
-                "subintent": state.subintent
-            },
+            "tag": str(state.intent or "mentor"),
             "prediction": 1,
             "mode": True,  # Переключение на ментора
             "close_session": False,
@@ -71,8 +80,7 @@ def build_response_dict(input_json: Dict, state: Optional[BotState] = None) -> D
         }
         
     response_dict = {"answer": answer_text,
-                     "tag": {"intent": state.intent,
-                             "subintent": state.subintent}, # notice: возможно стоит обернуть в str
+                     "tag": str(state.intent or "mentor"),
                      "prediction": 1, # decision_score - добавить
                      "mode": False, # - добавить desicion_score для ответа агентов
                      "close_session": False, # - добавить decision_score для закрытия сессии
@@ -115,6 +123,9 @@ def run_multi_agent_event(input_json: Dict) -> Dict:
 
         new_state = graph.invoke(old_state)
 
+        if isinstance(new_state, dict):
+            new_state = BotState.model_validate(new_state)
+
         save_state_into_redis(user_id, new_state)
         return build_response_dict(input_json, new_state)
 
@@ -125,4 +136,3 @@ def run_multi_agent_event(input_json: Dict) -> Dict:
 
     finally:
         current_input.current_input = None
-

@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Literal, Any, Dict, List
 from src.utils.classifier.intents import *
 from src.utils.project_paths import POLICY_ROOT
+from src.configs.settings import ASSISTANT_LANGUAGE
 import pathlib
 from typing import Optional, Any, Dict, List
 
@@ -280,6 +281,9 @@ class PolicyLoader:
 
         #здесь должен быть кусок кода проверки updated_at и created_at - пока не критично
 
+        rules = raw["rules_of_speaking"]
+        rules["lang"] = ASSISTANT_LANGUAGE
+
         return IntentPolicy(
             intent=intent,
             subintent=subintent,
@@ -287,7 +291,7 @@ class PolicyLoader:
             owner=raw["owner"],
             description=raw["description"],
             policy=policy_obj,
-            rules_of_speaking=raw["rules_of_speaking"],
+            rules_of_speaking=rules,
             created_at=raw["created_at"],
             updated_at=raw["updated_at"]
         )

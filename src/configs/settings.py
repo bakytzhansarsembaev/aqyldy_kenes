@@ -27,11 +27,14 @@ gpt_5_2 = "gpt-5.2"
 
 
 # !!!ОБЯЗАТЕЛЬНО УКАЗЫВАТЬ, ЧТОБ БЫЛО ОЧЕВИДНО, КУДА СТУЧАТЬСЯ!!!
-USABLE_BRANCH = TEST_URL
+USABLE_BRANCH = PROD_URL
 DEFAULT_GPT_MODEL = gpt_model_5
 
 # Mock mode для тестирования без API
 USE_MOCK_SERVICES = os.getenv("USE_MOCK_SERVICES", "true").lower() == "true"
+
+# Language: "ru" / "kz"
+ASSISTANT_LANGUAGE = "kz"
 
 # dateFormat
 date_format = '%Y-%m-%d %H:%M:%S'
@@ -43,8 +46,8 @@ RABBIT_TEST_QUEUE = "test_messages"
 RABBIT_PROD_QUEUE = "messages"
 RABBIT_RUSSIAN = "messages_rus"
 
-USABLE_RABBIT_URL = TEST_RABBIT
-USABLE_RABBIT_QUEUE = RABBIT_RUSSIAN
+USABLE_RABBIT_URL = PROD_RABBIT
+USABLE_RABBIT_QUEUE = RABBIT_TEST_QUEUE
 
 # Qalan.kz API main_token
 MAIN_TOKEN = os.getenv("QALAN_MAIN_TOKEN")
@@ -52,10 +55,16 @@ headers1 = {"Authorization" : "Bearer {}".format(MAIN_TOKEN)}
 
 
 # redis_connection_auth
-reddis_host = "10.207.19.7"
-reddis_port = 6379
-reddis_username = "username"
-reddis_password = "password"
+#reddis_host = "10.207.19.7"
+#reddis_port = 6379
+#reddis_username = "username"
+#reddis_password = "password"
+
+# redis_connection_auth
+reddis_host = "redis-17941.c124.us-central1-1.gce.cloud.redislabs.com"
+reddis_port = 17941
+reddis_username = "default"
+reddis_password = "8G1Tqn0jq3NFCIfj7MK48GpKgpGlR48B"
 
 
 # Qalan API's

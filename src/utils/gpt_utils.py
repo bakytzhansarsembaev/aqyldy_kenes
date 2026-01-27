@@ -19,8 +19,8 @@ def preprocess_context(context):
         dlg1 = re.split(r'(?=\bassistant: |\buser:)', dlg1)
         dlg1 = [x for x in dlg1 if len(x) > 0]
         dlg1 = [re.split(':', x, maxsplit=1) for x in dlg1]
-        # dlg1 = [x for x in dlg1 if len(x) > 0]
         dlg1 = [x for x in dlg1 if len(x) > 1]
+        dlg1 = [{"role": x[0].strip(), "content": x[1].strip()} for x in dlg1]
 
         return dlg1
 

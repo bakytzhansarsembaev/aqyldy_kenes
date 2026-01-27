@@ -1,20 +1,20 @@
-from src.utils.policies.policy_loader import PolicyLoader
+"""Basic connection example.
+"""
 
-loader = PolicyLoader()
+import redis
 
-# Тест 1: Главный агент
-policy1 = loader.get_for("task_problems", None)
-print(f"Main policy: {policy1.description}")
-assert policy1.policy.routing_logic is not None
+r = redis.Redis(
+    host='redis-17941.c124.us-central1-1.gce.cloud.redislabs.com',
+    port=17941,
+    decode_responses=True,
+    username="default",
+    password="8G1Tqn0jq3NFCIfj7MK48GpKgpGlR48B",
+)
 
-# Тест 2: Helper агент
-policy2 = loader.get_for("task_problems", "task_problems")
-print(f"Helper policy: {policy2.description}")
-assert len(policy2.policy.forbidden_actions) > 0
+success = r.set('foo', 'bar')
+# True
 
-# Тест 3: Changer агент
-policy3 = loader.get_for("task_problems", "change_task")
-print(f"Changer policy: {policy3.description}")
-assert len(policy3.policy.available_options) > 0
+result = r.get('foo')
+print(result)
+# >>> bar
 
-print("✅ Все политики загружены корректно!")
