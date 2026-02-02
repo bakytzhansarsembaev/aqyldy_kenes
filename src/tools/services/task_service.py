@@ -61,15 +61,41 @@ def get_current_task(user_id: str) -> Optional[Dict[str, Any]]:
         if response.status_code == 200:
             data = response.json()
 
+            # Определяем язык ученика
+            lang = data.get("language", "kaz")
+
+            # Извлекаем текст задания из taskTitle
+            task_title = data.get("taskTitle", {})
+            task_text = task_title.get(lang) or task_title.get("kaz") or task_title.get("rus") or ""
+
+            # Извлекаем условие задачи из taskDescription
+            task_desc = data.get("taskDescription", {})
+            task_content = task_desc.get("content", {})
+            task_condition = task_content.get(lang) or task_content.get("kaz") or task_content.get("rus") or ""
+
+            # Извлекаем ответ из taskSolution
+            task_solution = data.get("taskSolution", {})
+            task_answer = task_solution.get("answer", {})
+            answer_text = task_answer.get(lang) or task_answer.get("kaz") or task_answer.get("rus") or ""
+
+            # Собираем полный текст задачи
+            full_task_text = f"{task_text}\n{task_condition}" if task_condition else task_text
+
             # Маппинг API response -> наш формат
             result = {
                 "task_id": data.get("taskId") or data.get("task_id"),
-                "task_text": data.get("taskText") or data.get("task_text"),
+                "task_text": full_task_text,
+                "task_condition": task_condition,
+                "task_answer": answer_text,
                 "task_type": data.get("taskType") or data.get("task_type", "personal_study"),
                 "subject": data.get("subject") or data.get("subjectName"),
                 "grade": data.get("grade") or data.get("gradeNumber"),
+                "difficulty": data.get("difficulty"),
+                "language": lang,
+                "pupil_name": data.get("pupilFullname"),
                 "has_subscription": data.get("hasSubscription", True),
-                "personal_study_completed": data.get("personalStudyCompleted", False)
+                "personal_study_completed": data.get("personalStudyCompleted", False),
+                "decision_status": data.get("decisionStatus")
             }
 
             print(f"[API] Successfully fetched task for user_id={user_id}")

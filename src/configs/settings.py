@@ -31,7 +31,8 @@ USABLE_BRANCH = PROD_URL
 DEFAULT_GPT_MODEL = gpt_model_5
 
 # Mock mode для тестирования без API
-USE_MOCK_SERVICES = os.getenv("USE_MOCK_SERVICES", "true").lower() == "true"
+USE_MOCK_SERVICES = os.getenv("USE_MOCK_SERVICES", "false").lower() == "true"
+USE_MOCK_FREEZING = os.getenv("USE_MOCK_FREEZING", "false").lower() == "true"
 
 # Language: "ru" / "kz"
 ASSISTANT_LANGUAGE = "kz"

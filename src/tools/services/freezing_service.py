@@ -1,9 +1,9 @@
 from datetime import datetime, date
 
 import requests, json
-from src.configs.settings import headers1, USER_FREEZINGS, USE_MOCK_SERVICES
+from src.configs.settings import headers1, USER_FREEZINGS, USE_MOCK_FREEZING
 
-if USE_MOCK_SERVICES:
+if USE_MOCK_FREEZING:
     from src.tools.services.mock_services import (
         mock_check_freezings, mock_check_active_freezings, mock_check_past_freezings
     )
@@ -11,7 +11,7 @@ if USE_MOCK_SERVICES:
 
 def check_freezings(user_id: str):
     # список дат заморозок
-    if USE_MOCK_SERVICES:
+    if USE_MOCK_FREEZING:
         return mock_check_freezings(user_id)
 
     url = USER_FREEZINGS.format(str(user_id))
@@ -39,7 +39,7 @@ def check_freezings(user_id: str):
 
 def check_active_freezings(user_id: str):
     # список дат активных заморозок
-    if USE_MOCK_SERVICES:
+    if USE_MOCK_FREEZING:
         return mock_check_active_freezings(user_id)
 
     url = USER_FREEZINGS.format(str(user_id))
@@ -67,7 +67,7 @@ def check_active_freezings(user_id: str):
 
 def check_past_freezings(user_id: str):
     # список дат ранее поставленных заморозок заморозок
-    if USE_MOCK_SERVICES:
+    if USE_MOCK_FREEZING:
         return mock_check_past_freezings(user_id)
 
     url = USER_FREEZINGS.format(str(user_id))

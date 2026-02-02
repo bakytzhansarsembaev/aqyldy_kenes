@@ -18,12 +18,19 @@ class TaskHelperHelperAgent(BaseAgent):
     def get_data_from_api(self):
         # Получаем текущую задачу ученика
         current_task = get_current_task(self.user_id)
-        
+
+        if current_task:
+            task_text = current_task.get('task_text') or ''
+            print(f"[TaskHelper] Got task for user_id={self.user_id}: {task_text[:100]}...")
+        else:
+            print(f"[TaskHelper] No current task for user_id={self.user_id}")
+
         result = {
             "current_task": current_task.get("task_text") if current_task else None,
             "task_type": current_task.get("task_type") if current_task else None,
+            "task_id": current_task.get("task_id") if current_task else None,
             "has_subscription": current_task.get("has_subscription", True) if current_task else True,
             "personal_study_completed": current_task.get("personal_study_completed", False) if current_task else False
         }
-        
+
         return json.dumps(result, ensure_ascii=False)

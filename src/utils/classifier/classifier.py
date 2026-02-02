@@ -9,10 +9,16 @@ from src.utils.classifier.intents import ValidationLevel
 def classify(
         usable_context: list,
         max_attempts: int = 3,
-        prompt: str = classifier_base_prompt
+        prompt: str = classifier_base_prompt,
+        previous_intent: str = None
                     ):
     def classify_intent(max_tok: int = 600):
-        system_message = [{"role": "system", "content": prompt}]
+        # Добавляем контекст предыдущего интента в промпт
+        full_prompt = prompt
+        if previous_intent:
+            full_prompt += f"\n\n**КОНТЕКСТ ДИАЛОГА**\nПредыдущий интент в диалоге: {previous_intent}\nУчитывай это при классификации - если ученик продолжает тему (например, отвечает на вопрос по задаче), сохраняй интент. Если явно переключается на другую тему или завершает разговор (благодарит, прощается) - выбирай соответствующий новый интент."
+
+        system_message = [{"role": "system", "content": full_prompt}]
         messages = system_message + usable_context
         classifier_response = ask_gpt(messages=messages,
                                       max_tok=max_tok,

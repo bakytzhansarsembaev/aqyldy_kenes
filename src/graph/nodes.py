@@ -5,17 +5,29 @@ from src.utils.classifier.classifier import classify
 from src.utils.classifier.intents import IntentEnum, TaskProblemsSubIntentEnum
 
 
+def _get_context_with_current_message(state: BotState) -> list:
+    """Добавляет текущее сообщение пользователя к контексту для классификации."""
+    context = state.usable_context or []
+    # Добавляем текущее сообщение пользователя в конец контекста
+    if state.user_message:
+        context = context + [{"role": "user", "content": state.user_message}]
+    return context
+
+
 def summary_node(state: BotState):
-    state.summary = summarize(
-        state.usable_context
-    )
+    # Используем контекст с текущим сообщением
+    context_with_message = _get_context_with_current_message(state)
+    state.summary = summarize(context_with_message)
     return state
 
 
 def classifier_node(state: BotState):
-    classify_result = classify(
-        state.usable_context
-    )
+    # Используем контекст с текущим сообщением для классификации
+    context_with_message = _get_context_with_current_message(state)
+
+    # Передаём предыдущий интент в классификатор для контекста
+    classify_result = classify(context_with_message, previous_intent=state.previous_intent)
+
     state.intent = classify_result["intent"]
     state.subintent = classify_result["subintent"]
     state.confidence_score = classify_result.get("confidence")
@@ -75,16 +87,26 @@ def _process_task_helper_response(state: BotState, agent_result: dict, backend_t
     - Обработку LaTeX формул
     - Логирование
     """
+    import json
     from src.utils.latex_processor import fix_latex_formatting, validate_latex, count_formulas
 
     response_data = agent_result.get("response", {})
 
-    # Если response - строка (от GPT), обрабатываем как текст
+    # Если response - JSON строка, парсим её
     if isinstance(response_data, str):
-        answer_text = response_data
+        try:
+            parsed = json.loads(response_data)
+            if isinstance(parsed, dict):
+                response_data = parsed
+                agent_result["response"] = parsed  # Обновляем на dict
+        except (json.JSONDecodeError, TypeError):
+            pass  # Оставляем как строку
+
+    # Извлекаем answer_text
+    if isinstance(response_data, dict):
+        answer_text = response_data.get("answer", "") or ""
     else:
-        # Если dict - извлекаем answer
-        answer_text = response_data.get("answer", "") if isinstance(response_data, dict) else ""
+        answer_text = response_data if response_data else ""
 
     # Обновляем Task Helper состояние
     state.task_helper_active = True
@@ -117,11 +139,11 @@ def _process_task_helper_response(state: BotState, agent_result: dict, backend_t
         answer_text = fix_latex_formatting(answer_text)
 
         # Обновляем ответ
-        if isinstance(response_data, str):
-            agent_result["response"] = answer_text
-        elif isinstance(response_data, dict):
+        if isinstance(response_data, dict):
             response_data["answer"] = answer_text
             agent_result["response"] = response_data
+        else:
+            agent_result["response"] = answer_text
 
         state.agent_answer = agent_result
 

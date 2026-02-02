@@ -32,7 +32,8 @@ AGENT_REGISTRY = {
     (IntentEnum.support, SupportSubIntentEnum.navigation): support_navigation_agent.SupportNavigationAgent,
     (IntentEnum.support, SupportSubIntentEnum.emotional): support_emotional_agent.SupportEmotionalAgent,
     # task problems agents map
-    (IntentEnum.task_problems, None): task_helper_main_agent.TaskHelperMainAgent,
+    # По умолчанию используем TaskHelperHelperAgent (помощь с задачей), так как это основной кейс
+    (IntentEnum.task_problems, None): task_helper_helper_agent.TaskHelperHelperAgent,
     (IntentEnum.task_problems, TaskProblemsSubIntentEnum.task_problems): task_helper_helper_agent.TaskHelperHelperAgent,
     (IntentEnum.task_problems, TaskProblemsSubIntentEnum.change_task): task_helper_changer_agent.TaskHelperChangerAgent,
     # mentor agent (для эскалаций к человеку-ментору)
