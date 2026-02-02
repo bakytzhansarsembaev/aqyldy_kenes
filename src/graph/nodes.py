@@ -16,7 +16,9 @@ def classifier_node(state: BotState):
     classify_result = classify(
         state.usable_context
     )
-    state.intent, state.subintent = classify_result["intent"], classify_result["subintent"]
+    state.intent = classify_result["intent"]
+    state.subintent = classify_result["subintent"]
+    state.confidence_score = classify_result.get("confidence")
 
     return state
 

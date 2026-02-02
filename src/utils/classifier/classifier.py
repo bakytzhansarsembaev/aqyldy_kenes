@@ -36,6 +36,7 @@ def classify(
     last_error = None
     intent = None
 
+    confidence = None
     for i in range(max_attempts):
         try:
             intent_response = validate_response_format(
@@ -44,6 +45,7 @@ def classify(
             )
 
             intent = intent_response["intent"]
+            confidence = intent_response.get("confidence")
             break
 
         except ValueError as e:
@@ -58,10 +60,10 @@ def classify(
         raise ValueError("Intent classification failed")
 
     if intent == IntentEnum.neutral:
-        return {"intent": intent, "subintent": None}
+        return {"intent": intent, "subintent": None, "confidence": confidence}
 
     if intent not in intent_to_subintent_validator.keys():
-        return {"intent": intent, "subintent": None}
+        return {"intent": intent, "subintent": None, "confidence": confidence}
 
 
     subintent = None
@@ -79,7 +81,7 @@ def classify(
             last_error = e
             continue
 
-    return {"intent": intent, "subintent": subintent}
+    return {"intent": intent, "subintent": subintent, "confidence": confidence}
 
     #     except ValueError as e:
     #         last_error = e
