@@ -59,14 +59,21 @@ def extract_answer_from_response(raw_response) -> Tuple[str, str]:
             cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
             cleaned = re.sub(r'\s*```$', '', cleaned)
 
-        try:
-            parsed = json.loads(cleaned)
-            if isinstance(parsed, dict):
-                answer_text = parsed.get("answer") or ""
-                decision = parsed.get("decision", "response")
-            else:
+        # Проверяем, похоже ли на JSON (начинается с { )
+        if cleaned.startswith("{"):
+            try:
+                # Фиксируем невалидные JSON-эскейпы от LaTeX: \( \) \[ \] \frac и т.д.
+                fixed = re.sub(r'\\([^"\\/bfnrtu])', r'\\\\\1', cleaned)
+                parsed = json.loads(fixed)
+                if isinstance(parsed, dict):
+                    answer_text = parsed.get("answer") or ""
+                    decision = parsed.get("decision", "response")
+                else:
+                    answer_text = raw_response
+            except json.JSONDecodeError:
+                # Если JSON не парсится - это обычный текст
                 answer_text = raw_response
-        except json.JSONDecodeError:
+        else:
             answer_text = raw_response
 
     # Если это dict - извлекаем поля

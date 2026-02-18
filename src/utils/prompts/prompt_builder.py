@@ -10,7 +10,9 @@ class PromptBuilder:
             policy,
             context_data,
             backend_tools,
-            rules_of_speaking
+            rules_of_speaking,
+            previous_intent=None,
+            previous_subintent=None
                  ):
 
         self.policy = policy
@@ -20,6 +22,8 @@ class PromptBuilder:
         self.backend_tools = backend_tools
         self.rules_of_speaking = rules_of_speaking
         self.agent_system_prompt = agent_system_prompt
+        self.previous_intent = previous_intent
+        self.previous_subintent = previous_subintent
 
     def build_system_prompt(self):
         # return f"{self.base_system_prompt}\n\n{self.agent_system_prompt}"
@@ -39,6 +43,10 @@ class PromptBuilder:
 
         if self.backend_tools is not None:
             parts.append(f"***Data from API***\nbackend_tools: {self.backend_tools}")
+
+        # Добавляем контекст предыдущего диалога
+        if self.previous_intent is not None:
+            parts.append(f"***Previous conversation context***\nprevious_intent: {self.previous_intent}\nprevious_subintent: {self.previous_subintent}")
 
         return "\n\n".join(parts)
 

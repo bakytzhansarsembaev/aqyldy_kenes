@@ -6,7 +6,8 @@ from src.utils.prompts.agent_prompts import base_system_prompt, SYSTEM_PROMPTS, 
 
 
 class BaseAgent:
-    def __init__(self, intent, subintent, backend_tools, context_data, policy_loader, user_id):
+    def __init__(self, intent, subintent, backend_tools, context_data, policy_loader, user_id,
+                 previous_intent=None, previous_subintent=None):
         self.intent = intent
         self.subintent = subintent
 
@@ -16,6 +17,10 @@ class BaseAgent:
 
         # user_state
         self.context_data = context_data
+
+        # контекст предыдущего диалога
+        self.previous_intent = previous_intent
+        self.previous_subintent = previous_subintent
 
         # загрузчик политик
         self.policy_loader = policy_loader
@@ -45,7 +50,9 @@ class BaseAgent:
             context_data=self.context_data,
             # notice: переписать usable_context под дефолтные данные(не нужно менять на role, content)
             backend_tools=backend_data,
-            rules_of_speaking=self.policy.rules_of_speaking
+            rules_of_speaking=self.policy.rules_of_speaking,
+            previous_intent=self.previous_intent,
+            previous_subintent=self.previous_subintent
                                 )
 
         messages = prompt_builder.build_messages()

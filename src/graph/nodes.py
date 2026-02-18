@@ -50,7 +50,9 @@ def agent_execution_node(
         context_data=state.summary,
         policy_loader=policy_loader,
         user_id=state.user_id,
-        backend_tools=backend_tools
+        backend_tools=backend_tools,
+        previous_intent=state.previous_intent,
+        previous_subintent=state.previous_subintent
     )
 
     # Запуск агента
@@ -101,8 +103,10 @@ def _process_task_helper_response(state: BotState, agent_result: dict):
             cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
             cleaned = re.sub(r'\s*```$', '', cleaned)
         try:
-            parsed = json.loads(cleaned)
-            if isinstance(response_data, dict):
+            # Фиксируем невалидные JSON-эскейпы от LaTeX: \( \) \[ \] \frac и т.д.
+            fixed = re.sub(r'\\([^"\\/bfnrtu])', r'\\\\\1', cleaned)
+            parsed = json.loads(fixed)
+            if isinstance(parsed, dict):  # FIX: было response_data, нужно parsed
                 response_data = parsed
                 agent_result["response"] = parsed  # Обновляем на dict
         except (json.JSONDecodeError, TypeError):
@@ -138,11 +142,25 @@ def _process_task_helper_response(state: BotState, agent_result: dict):
                 "task_id": current_task_id
             }
 
-    # Проверяем смену задачи
-    if state.confirmed_task_id and current_task_id and state.confirmed_task_id != current_task_id:
+    # Проверяем флаг смены задачи из backend_data
+    task_changed = False
+    if backend_data and isinstance(backend_data, dict):
+        task_changed = backend_data.get("task_changed", False)
+
+    # Если задача сменилась - сбрасываем сессию
+    if task_changed:
+        print(f"[SESSION] Task changed for user_id={state.user_id}, resetting session")
+        state.task_confirmed = False
+        state.confirmed_task_id = None
+        state.hints_given = 0
+        state.current_hint_level = 0
+        # НЕ закрываем сессию, просто начинаем новую задачу
+
+    # Проверяем смену задачи по task_id (fallback для случаев когда task_id есть)
+    elif state.confirmed_task_id and current_task_id and state.confirmed_task_id != current_task_id:
         state.session_closed = True
         state.close_reason = "task_changed"
-        print(f"[SESSION] Task changed for user_id={state.user_id}, closing session")
+        print(f"[SESSION] Task changed (by task_id) for user_id={state.user_id}, closing session")
         # Сбрасываем для новой задачи
         state.task_confirmed = False
         state.confirmed_task_id = None
@@ -159,6 +177,9 @@ def _process_task_helper_response(state: BotState, agent_result: dict):
         # Если task_id нет, но агент дал ответ по задаче - тоже подтверждаем
         elif answer_text and isinstance(response_data, dict) and response_data.get("decision") == "response":
             state.task_confirmed = True
+            # Сохраняем текст задачи как "pseudo-id" для сравнения
+            if state.task_context and state.task_context.get("task_text"):
+                state.confirmed_task_id = f"text:{hash(state.task_context.get('task_text', ''))}"
             print(f"[SESSION] Task confirmed for user_id={state.user_id} (no task_id, but agent responded)")
 
     # Получаем hint_level из response если есть

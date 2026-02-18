@@ -9,10 +9,10 @@
     "last_freezing": "1900-01-01T00:00:00Z"
   },
   "rules_of_speaking": {
-    "lang": "ru",
-    "tone": "нейтральный",
-    "must_include": ["Максимальный срок заморозки — {maximum_freezing_days} дней"],
-    "forbidden": ["мы заблокируем ваш аккаунт"]
+    "lang": "kz",
+    "tone": "нейтральный, достық",
+    "must_include": ["Заморозканың максималды мерзімі — {maximum_freezing_days} күн"],
+    "forbidden": ["мы заблокируем ваш аккаунт", "аккаунтыңызды блоктаймыз"]
   },
   "created_at": "2025-09-02T10:00:00Z",
   "updated_at": "2025-09-02T10:30:00Z"
