@@ -1,12 +1,13 @@
 import requests
 import json
+import re
 import time
 from datetime import datetime
 from src.router.decision_router.graph_state import BotState
 from src.graph.graph_builder import build_graph
 # from src.tools.services.push_reactions.pushes import check_message_for_push
 from src.tools.storage.state_store.redis_usage.state_repository import get_state_from_redis, save_state_into_redis
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from src.runtime.rabbit_input import current_input
 from src.configs.settings import ML_RESPONSE, USABLE_BRANCH
 from src.utils.policies.policy_loader import PolicyLoader
@@ -40,6 +41,92 @@ def _is_greeting_on_cooldown(full_context: str) -> bool:
     now = datetime.now()
     minutes_since_greeting = (now - last_greeting_time).total_seconds() / 60
     return minutes_since_greeting < GREETING_COOLDOWN_MINUTES
+
+
+def extract_answer_from_response(raw_response) -> Tuple[str, str]:
+    """
+    Извлекает answer и decision из ответа агента.
+    Обрабатывает: строку JSON, dict, вложенные структуры.
+    """
+    answer_text = ""
+    decision = "response"
+
+    # Если это строка - пробуем распарсить как JSON
+    if isinstance(raw_response, str):
+        # Убираем markdown code blocks если есть
+        cleaned = raw_response.strip()
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
+            cleaned = re.sub(r'\s*```$', '', cleaned)
+
+        try:
+            parsed = json.loads(cleaned)
+            if isinstance(parsed, dict):
+                answer_text = parsed.get("answer") or ""
+                decision = parsed.get("decision", "response")
+            else:
+                answer_text = raw_response
+        except json.JSONDecodeError:
+            answer_text = raw_response
+
+    # Если это dict - извлекаем поля
+    elif isinstance(raw_response, dict):
+        answer_text = raw_response.get("answer") or ""
+        decision = raw_response.get("decision", "response")
+
+    else:
+        answer_text = str(raw_response) if raw_response else ""
+
+    return answer_text, decision
+
+
+# Таймаут сессии в секундах (20 минут)
+SESSION_TIMEOUT_SECONDS = 20 * 60
+# Максимальное количество подсказок
+MAX_HINTS = 5
+
+
+def should_close_session(state: BotState, current_task_id: Optional[str]) -> Tuple[bool, str]:
+    """Определяет, нужно ли закрыть сессию"""
+
+    # 1. Все подсказки выданы
+    if state.hints_given >= MAX_HINTS:
+        return True, "max_hints_reached"
+
+    # 2. Таймаут 20 минут
+    if state.last_message_time:
+        try:
+            last_time = datetime.fromisoformat(state.last_message_time)
+            if (datetime.now() - last_time).total_seconds() > SESSION_TIMEOUT_SECONDS:
+                return True, "timeout_20min"
+        except (ValueError, TypeError):
+            pass
+
+    # 3. Смена задания
+    if state.confirmed_task_id and current_task_id and state.confirmed_task_id != current_task_id:
+        return True, "task_changed"
+
+    return False, ""
+
+
+def reset_session(state: BotState) -> BotState:
+    """Сбрасывает сессию и возвращает чистый state для нового цикла"""
+    return BotState(
+        user_id=state.user_id,
+        user_message=state.user_message,
+        usable_context=state.usable_context,
+        # Сбрасываем все поля сессии:
+        task_confirmed=False,
+        confirmed_task_id=None,
+        hints_given=0,
+        current_hint_level=0,
+        task_helper_active=False,
+        session_closed=False,
+        close_reason=None,
+        session_start_time=None,
+        last_message_time=None,
+        # intent/subintent сбросятся при новой классификации
+    )
 
 
 def run_event(input_json: Dict) -> Dict:
@@ -133,31 +220,8 @@ def build_response_dict(input_json: Dict, state: Optional[BotState] = None) -> D
     # Извлекаем текст ответа из response (может быть JSON-строкой или dict)
     raw_response = agent_response.get("response", "")
 
-    # Парсим response - может быть: строка, JSON-строка, или уже dict
-    answer_text = ""
-    decision = "response"
-
-    try:
-        # Если строка - пробуем распарсить как JSON
-        if isinstance(raw_response, str):
-            try:
-                parsed = json.loads(raw_response)
-                if isinstance(parsed, dict):
-                    answer_text = parsed.get("answer") or ""
-                    decision = parsed.get("decision", "response")
-                else:
-                    answer_text = raw_response
-            except json.JSONDecodeError:
-                answer_text = raw_response
-        # Если уже dict - извлекаем поля
-        elif isinstance(raw_response, dict):
-            answer_text = raw_response.get("answer") or ""
-            decision = raw_response.get("decision", "response")
-        else:
-            answer_text = str(raw_response) if raw_response else ""
-    except (TypeError, AttributeError):
-        answer_text = str(raw_response) if raw_response else ""
-        decision = "response"
+    # Используем надёжный парсер для извлечения answer и decision
+    answer_text, decision = extract_answer_from_response(raw_response)
 
     # Получаем confidence_score (если есть)
     confidence = state.confidence_score if state.confidence_score is not None else 1.0
@@ -212,7 +276,7 @@ def build_response_dict(input_json: Dict, state: Optional[BotState] = None) -> D
                      "tag": api_tag,
                      "prediction": confidence,
                      "mode": bot_should_respond,
-                     "close_session": False,
+                     "close_session": state.session_closed if state else False,
                      "session_id": input_json["session_id"],
                      "pupil_id": input_json["pupil_id"],
                      "sender_type": input_json["sender_type"],
@@ -246,10 +310,20 @@ def run_multi_agent_event(input_json: Dict) -> Dict:
                     context=input_json["context"],
                     full_context=input_json["full_context"],
                     session_context=input_json["session_context"]
-                )
+                ),
+                session_start_time=datetime.now().isoformat(),
+                last_message_time=datetime.now().isoformat()
             )
         else:
+            # Проверяем нужно ли закрыть/сбросить сессию
+            if old_state.session_closed:
+                # Сессия была закрыта - начинаем заново с классификатора
+                old_state = reset_session(old_state)
+                old_state.session_start_time = datetime.now().isoformat()
+                print(f"[SESSION] Reset for user_id={user_id}, starting fresh classification")
+
             old_state.user_message = input_json["question"]
+            old_state.last_message_time = datetime.now().isoformat()
             # Сбрасываем флаги для нового сообщения
             old_state.escalate_to_mentor = False
 

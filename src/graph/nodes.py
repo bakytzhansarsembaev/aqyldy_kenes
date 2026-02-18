@@ -62,7 +62,7 @@ def agent_execution_node(
     # ============================================
     if state.intent == IntentEnum.task_problems:
         try:
-            _process_task_helper_response(state, agent_result, backend_tools)
+            _process_task_helper_response(state, agent_result)
         except Exception as e:
             print(f"[Task Helper] State update error: {e}")
             import traceback
@@ -78,25 +78,31 @@ def agent_execution_node(
     return state
 
 
-def _process_task_helper_response(state: BotState, agent_result: dict, backend_tools: dict):
+def _process_task_helper_response(state: BotState, agent_result: dict):
     """
     Обработка ответа Task Helper агента.
 
     Включает:
     - Обновление состояния Task Helper
+    - Управление подтверждением задачи и сессией
     - Обработку LaTeX формул
     - Логирование
     """
     import json
+    import re
     from src.utils.latex_processor import fix_latex_formatting, validate_latex, count_formulas
 
     response_data = agent_result.get("response", {})
 
-    # Если response - JSON строка, парсим её
+    # Если response - JSON строка, парсим её (с обработкой markdown code blocks)
     if isinstance(response_data, str):
+        cleaned = response_data.strip()
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
+            cleaned = re.sub(r'\s*```$', '', cleaned)
         try:
-            parsed = json.loads(response_data)
-            if isinstance(parsed, dict):
+            parsed = json.loads(cleaned)
+            if isinstance(response_data, dict):
                 response_data = parsed
                 agent_result["response"] = parsed  # Обновляем на dict
         except (json.JSONDecodeError, TypeError):
@@ -111,6 +117,50 @@ def _process_task_helper_response(state: BotState, agent_result: dict, backend_t
     # Обновляем Task Helper состояние
     state.task_helper_active = True
 
+    # ============================================
+    # Session management: получаем task_id из backend_data агента
+    # ============================================
+    backend_data = agent_result.get("backend_data")
+    if isinstance(backend_data, str):
+        try:
+            backend_data = json.loads(backend_data)
+        except (json.JSONDecodeError, TypeError):
+            backend_data = {}
+
+    current_task_id = None
+    if backend_data and isinstance(backend_data, dict):
+        current_task_id = backend_data.get("task_id")
+        # Сохраняем task_context в state
+        if state.task_context is None:
+            state.task_context = {
+                "task_text": backend_data.get("current_task"),
+                "task_type": backend_data.get("task_type"),
+                "task_id": current_task_id
+            }
+
+    # Проверяем смену задачи
+    if state.confirmed_task_id and current_task_id and state.confirmed_task_id != current_task_id:
+        state.session_closed = True
+        state.close_reason = "task_changed"
+        print(f"[SESSION] Task changed for user_id={state.user_id}, closing session")
+        # Сбрасываем для новой задачи
+        state.task_confirmed = False
+        state.confirmed_task_id = None
+        state.hints_given = 0
+        state.current_hint_level = 0
+
+    # Автоподтверждение задачи: если агент ответил про задачу, считаем её подтверждённой
+    if not state.task_confirmed:
+        # Если есть task_context с task_id - используем его
+        if current_task_id:
+            state.task_confirmed = True
+            state.confirmed_task_id = current_task_id
+            print(f"[SESSION] Task confirmed for user_id={state.user_id}, task_id={current_task_id}")
+        # Если task_id нет, но агент дал ответ по задаче - тоже подтверждаем
+        elif answer_text and isinstance(response_data, dict) and response_data.get("decision") == "response":
+            state.task_confirmed = True
+            print(f"[SESSION] Task confirmed for user_id={state.user_id} (no task_id, but agent responded)")
+
     # Получаем hint_level из response если есть
     if isinstance(response_data, dict):
         hint_level = response_data.get("hint_level", 0)
@@ -121,13 +171,13 @@ def _process_task_helper_response(state: BotState, agent_result: dict, backend_t
         if hint_level > 0:
             state.hints_given += 1
 
-    # Сохраняем контекст задачи
-    if state.task_context is None and backend_tools:
-        state.task_context = {
-            "task_text": backend_tools.get("current_task") or backend_tools.get("task_text"),
-            "task_type": backend_tools.get("task_type"),
-            "task_id": backend_tools.get("task_id")
-        }
+    # ============================================
+    # Проверяем достижение максимума подсказок
+    # ============================================
+    if state.hints_given >= 5:
+        state.session_closed = True
+        state.close_reason = "max_hints_reached"
+        print(f"[SESSION] Max hints reached for user_id={state.user_id}, closing session")
 
     # ============================================
     # LaTeX обработка
@@ -138,14 +188,20 @@ def _process_task_helper_response(state: BotState, agent_result: dict, backend_t
 
         answer_text = fix_latex_formatting(answer_text)
 
-        # Обновляем ответ
+        # Обновляем ответ в response_data
         if isinstance(response_data, dict):
             response_data["answer"] = answer_text
-            agent_result["response"] = response_data
-        else:
-            agent_result["response"] = answer_text
 
-        state.agent_answer = agent_result
+    # ============================================
+    # ВАЖНО: Обновляем agent_result["response"] и state.agent_answer ВСЕГДА
+    # (Pydantic делает копию при присваивании, поэтому нужно обновить в конце)
+    # ============================================
+    if isinstance(response_data, dict):
+        agent_result["response"] = response_data
+    else:
+        agent_result["response"] = answer_text
+
+    state.agent_answer = agent_result
 
 
 def update_state_node(state: BotState):

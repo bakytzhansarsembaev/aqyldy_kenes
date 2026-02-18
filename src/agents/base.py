@@ -67,6 +67,7 @@ class BaseAgent:
         return {
             "response": response,
             "intent": self.intent,
-            "subintent": self.subintent
+            "subintent": self.subintent,
+            "backend_data": backend_data  # данные от API для сохранения в state
             # для дальнейшей оркестрации нужно добавить поле decision, поле confidence статус агента и т.д.
         }
