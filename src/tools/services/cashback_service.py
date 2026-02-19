@@ -44,7 +44,7 @@ def check_users_password(user_id: str):
     if response.status_code == 200:
         data = response.json()
 
-        return {"login": data["login"], "password": data["password"]}
+        return {"login": data["phoneNumber"], "password": data["password"]}
 
     else:
         raise ConnectionError(f"Cashback service {check_users_password.__name__} doesn't work. status_code is: {response.status_code}")

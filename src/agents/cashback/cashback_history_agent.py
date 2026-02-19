@@ -1,6 +1,6 @@
 from src.agents.base import BaseAgent
 from src.utils.classifier.intents import IntentEnum, CashbackSubIntentEnum
-from src.tools.services.cashback_service import check_payments, check_payouts, cashback_sum, check_users_password
+from src.tools.services.cashback_service import check_payments, check_payouts, cashback_sum
 import json
 
 
@@ -20,14 +20,12 @@ class CashbackHistoryAgent(BaseAgent):
 
     def get_data_from_api(self):
         cash_sum = cashback_sum(self.user_id)
-        auth_data = check_users_password(self.user_id)
         payments = check_payments(self.user_id)
         payouts = check_payouts(self.user_id)
 
         result = {
             "payments": payments,
             "payouts": payouts,
-            "auth_data": auth_data,
             "cashback_sum": cash_sum,
         }
 

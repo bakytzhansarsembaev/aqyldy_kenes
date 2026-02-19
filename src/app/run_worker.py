@@ -331,6 +331,12 @@ def run_multi_agent_event(input_json: Dict) -> Dict:
 
             old_state.user_message = input_json["question"]
             old_state.last_message_time = datetime.now().isoformat()
+            # Обновляем контекст из rabbit — чтобы суммаризатор видел актуальную историю диалога
+            old_state.usable_context = usable_context(
+                context=input_json["context"],
+                full_context=input_json["full_context"],
+                session_context=input_json["session_context"]
+            )
             # Сбрасываем флаги для нового сообщения
             old_state.escalate_to_mentor = False
 

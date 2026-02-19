@@ -13,7 +13,7 @@
   "rules_of_speaking": {
     "lang": "ru",
     "tone": "дружелюбный",
-    "must_include": ["сроки рассмотрения — до {payout_status_days_is_considering} дней"],
+    "must_include": [],
     "forbidden": []
   },
   "created_at": "2025-09-02T10:00:00Z",

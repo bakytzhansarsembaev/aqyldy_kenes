@@ -1,6 +1,6 @@
 {
   "intent": "cashback",
-  "subintent": "cashback_history",
+  "subintent": "history",
   "version": "1.0.0",
   "owner": "ml",
   "description": "Ты мягко и понятно объясняешь ученику историю начислений вознаграждений на Qalan.kz, показывая последние операции только из доступных данных.",
