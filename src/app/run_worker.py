@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from src.router.decision_router.graph_state import BotState
 from src.graph.graph_builder import build_graph
-# from src.tools.services.push_reactions.pushes import check_message_for_push
+from src.tools.services.push_reactions.pushes import check_message_for_push
 from src.tools.storage.state_store.redis_usage.state_repository import get_state_from_redis, save_state_into_redis
 from typing import Dict, Optional, Tuple
 from src.runtime.rabbit_input import current_input
@@ -298,8 +298,25 @@ def build_response_dict(input_json: Dict, state: Optional[BotState] = None) -> D
 
 
 def run_push_event(input_json: Dict) -> Optional[Dict]:
-    # return check_message_for_push(input_json)
-    return None
+    push_result = check_message_for_push(input_json)
+    if push_result is None:
+        return None
+    return {
+        "answer": push_result["answer"],
+        "tag": push_result["tag"],
+        "prediction": 1.0,
+        "mode": True,
+        "close_session": False,
+        "session_id": input_json["session_id"],
+        "pupil_id": input_json["pupil_id"],
+        "sender_type": input_json["sender_type"],
+        "full_context": input_json["full_context"],
+        "context": input_json["context"],
+        "question": input_json["question"],
+        "modified_message_time": input_json["modified_message_time"],
+        "session_context": input_json["session_context"],
+        "is_smart_suggestion": True,
+    }
 
 
 def run_multi_agent_event(input_json: Dict) -> Dict:

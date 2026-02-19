@@ -35,6 +35,15 @@ def classifier_node(state: BotState):
     return state
 
 
+def _validate_task_helper_answer(answer_text: str) -> bool:
+    """Returns True if answer is valid (hint-style), False if it's a direct solution."""
+    from src.utils.prompts.helper_prompts import check_assistants_answer_prompt
+    from src.tools.services.push_reactions.gpt_helper import ask_gpt_for_help
+    result = ask_gpt_for_help(check_assistants_answer_prompt, answer_text)
+    # result is "1" (valid hint) or "0" (gave direct solution — bad)
+    return result != "0"
+
+
 def agent_execution_node(
         state: BotState,
         policy_loader,
@@ -57,6 +66,20 @@ def agent_execution_node(
 
     # Запуск агента
     agent_result = agent.run_agent(user_message=state.user_message, summary=state.summary)
+
+    # ============================================
+    # Task Helper: validate answer quality (hint vs direct solution)
+    # ============================================
+    if state.intent == IntentEnum.task_problems:
+        try:
+            raw_resp = agent_result.get("response", "")
+            raw_answer = raw_resp.get("answer", raw_resp) if isinstance(raw_resp, dict) else str(raw_resp)
+            if raw_answer and not _validate_task_helper_answer(raw_answer):
+                print(f"[Validation] Direct solution detected, regenerating for user_id={state.user_id}")
+                agent_result = agent.run_agent(user_message=state.user_message, summary=state.summary)
+        except Exception as e:
+            print(f"[Validation] Error during answer validation: {e}")
+
     state.agent_answer = agent_result
 
     # ============================================

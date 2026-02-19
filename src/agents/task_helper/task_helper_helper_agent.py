@@ -32,6 +32,9 @@ class TaskHelperHelperAgent(BaseAgent):
         )
 
     def get_data_from_api(self):
+        if hasattr(self, '_cached_data'):
+            return self._cached_data
+
         # Получаем state из Redis
         state = get_state_from_redis(self.user_id)
 
@@ -100,4 +103,38 @@ class TaskHelperHelperAgent(BaseAgent):
             "task_changed": task_changed  # Новый флаг для агента
         }
 
-        return json.dumps(result, ensure_ascii=False)
+        self._cached_data = json.dumps(result, ensure_ascii=False)
+        return self._cached_data
+
+    UNSUBSCRIBED_ANSWER = "Қазір сіздің жазылымыңыз жоқ. Платформада жазылымды активтендіріп, кейін хабарласыңыз."
+    DIAGNOSTICS_ANSWER = "Бұл бөлімдегі тапсырмалар диагностикаға арналған — мен осы тапсырмалармен көмектесе алмаймын."
+
+    def run_agent(self, user_message, summary):
+        backend_data_str = self.get_data_from_api()
+        try:
+            backend_data = json.loads(backend_data_str) if isinstance(backend_data_str, str) else {}
+        except Exception:
+            backend_data = {}
+
+        has_subscription = backend_data.get("has_subscription", True)
+        task_type = backend_data.get("task_type", "personal_study")
+
+        if not has_subscription:
+            print(f"[TaskHelper] Blocked: no subscription for user_id={self.user_id}")
+            return {
+                "response": {"decision": "response", "answer": self.UNSUBSCRIBED_ANSWER},
+                "intent": self.intent,
+                "subintent": self.subintent,
+                "backend_data": backend_data_str,
+            }
+
+        if task_type == "diagnostics":
+            print(f"[TaskHelper] Blocked: diagnostics section for user_id={self.user_id}")
+            return {
+                "response": {"decision": "response", "answer": self.DIAGNOSTICS_ANSWER},
+                "intent": self.intent,
+                "subintent": self.subintent,
+                "backend_data": backend_data_str,
+            }
+
+        return super().run_agent(user_message, summary)
