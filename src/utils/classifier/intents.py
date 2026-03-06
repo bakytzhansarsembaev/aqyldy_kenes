@@ -38,6 +38,8 @@ class FreezingSubIntentEnum(str, Enum):
 class TaskProblemsSubIntentEnum(str, Enum):
     task_problems = "task_problems"
     change_task = "change_task"
+    task_evaluation = "task_evaluation"
+    task_completion_status = "task_completion_status"
 
 
 class SupportSubIntentEnum(str, Enum):

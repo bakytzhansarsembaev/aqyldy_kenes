@@ -3,6 +3,13 @@ from src.utils.classifier.summary import summarize
 from src.agents.registry import AGENT_REGISTRY
 from src.utils.classifier.classifier import classify
 from src.utils.classifier.intents import IntentEnum, TaskProblemsSubIntentEnum
+from src.utils.gpt_utils import translate_to_kazakh
+
+ALLOWED_INTENTS = {
+    IntentEnum.cashback,
+    IntentEnum.freezing,
+    IntentEnum.task_problems,
+}
 
 
 def _get_context_with_current_message(state: BotState) -> list:
@@ -49,6 +56,18 @@ def agent_execution_node(
         policy_loader,
         backend_tools=None
 ):
+    # Если intent не в списке разрешённых — сразу эскалация к ментору
+    if state.intent not in ALLOWED_INTENTS:
+        state.escalate_to_mentor = True
+        state.agent_answer = {
+            "response": {"decision": "pass", "answer": ""},
+            "intent": state.intent,
+            "subintent": state.subintent,
+            "backend_data": {}
+        }
+        print(f"[ALLOWED_INTENTS] Intent '{state.intent}' not allowed, escalating to mentor for user_id={state.user_id}")
+        return state
+
     key = (state.intent, state.subintent)
     AgentClass = AGENT_REGISTRY.get(key)
 
@@ -92,13 +111,6 @@ def agent_execution_node(
             print(f"[Task Helper] State update error: {e}")
             import traceback
             traceback.print_exc()
-
-    # ============================================
-    # Mentor эскалация
-    # ============================================
-    if state.intent == IntentEnum.mentor:
-        state.escalate_to_mentor = True
-        print(f"[Mentor] Escalation for user_id={state.user_id}")
 
     return state
 
@@ -246,6 +258,32 @@ def _process_task_helper_response(state: BotState, agent_result: dict):
         agent_result["response"] = answer_text
 
     state.agent_answer = agent_result
+
+
+def language_check_node(state: BotState) -> BotState:
+    if not state.agent_answer:
+        return state
+
+    response = state.agent_answer.get("response", {})
+    if not isinstance(response, dict):
+        return state
+
+    decision = response.get("decision", "response")
+    answer = response.get("answer", "")
+
+    # Пропускаем pass (ментор) и пустые ответы
+    if decision == "pass" or not answer:
+        return state
+
+    # Маркеры русского языка: буквы ё,ъ,ы,э отсутствуют в казахском алфавите
+    russian_markers = set('ёъыэЁЪЫЭ')
+    if any(c in russian_markers for c in answer):
+        print(f"[LangCheck] Russian markers detected, translating to Kazakh for user_id={state.user_id}")
+        translated = translate_to_kazakh(answer)
+        response["answer"] = translated
+        state.agent_answer["response"] = response
+
+    return state
 
 
 def update_state_node(state: BotState):

@@ -18,13 +18,15 @@ def build_graph(policy_loader):
             policy_loader=policy_loader
         )
     )
+    graph.add_node("language_check", language_check_node)
     graph.add_node("update_state", update_state_node)
 
     # переходы
     graph.set_entry_point("summary")
     graph.add_edge("summary", "classify")
     graph.add_edge("classify", "agent_execution")
-    graph.add_edge("agent_execution", "update_state")
+    graph.add_edge("agent_execution", "language_check")
+    graph.add_edge("language_check", "update_state")
     graph.add_edge("update_state", END)
 
     return graph.compile()

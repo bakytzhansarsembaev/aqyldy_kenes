@@ -233,8 +233,8 @@ def build_response_dict(input_json: Dict, state: Optional[BotState] = None) -> D
     # Получаем confidence_score (если есть)
     confidence = state.confidence_score if state.confidence_score is not None else 1.0
 
-    # Если агент не смог ответить - переключаем на ментора
-    if decision == "pass" or answer_text is None:
+    # Если агент не смог ответить или ответ пустой - переключаем на ментора
+    if decision == "pass" or not answer_text:
         return {
             "answer": "",
             "tag": map_intent_to_api_tag(state.intent, state.subintent) if state.intent else "mentor",

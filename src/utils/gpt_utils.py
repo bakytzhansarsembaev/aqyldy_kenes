@@ -1,5 +1,5 @@
 from openai import OpenAI
-from src.configs.settings import OPENAI_API_KEY_BASE, date_format, gpt_5_1, gpt_5_2
+from src.configs.settings import OPENAI_API_KEY_BASE, date_format, gpt_5_1, gpt_5_2, gpt_model_4o_mini
 from typing import Optional, List, Dict, Any
 import re, json, datetime
 from src.utils.classifier.intents import CheckIntent, ValidationLevel, IntentEnum, intent_to_subintent_validator
@@ -29,6 +29,8 @@ def preprocess_context(context):
 
 
 def eval_contexts(our_list_in_string) -> Optional[List[Dict]]:
+    if not our_list_in_string:
+        return None
     try:
         our_list = eval(our_list_in_string)
     except Exception as first_try_error:
@@ -295,6 +297,15 @@ def start_asking(dialog_2: str, type_of_ask: str, system_prompt=None, usable_con
         except Exception as asking_exception:
             print('Сессия была прервана light_model', asking_exception)
             print(dlg2)
+
+
+def translate_to_kazakh(text: str) -> str:
+    """Переводит текст на казахский язык если в нём есть русский."""
+    messages = [
+        {"role": "system", "content": "Переведи текст на казахский язык. Сохрани смысл и форматирование. Верни только переведённый текст без пояснений."},
+        {"role": "user", "content": text}
+    ]
+    return ask_gpt(messages, max_tok=1000, model_gpt=gpt_model_4o_mini)
 
 
 # check type ~ json

@@ -22,7 +22,7 @@ def cashback_sum(user_id: str):
 
     if response.status_code == 200:
         data = response.json()
-        cash_sum = data["cashbackSum"] - data["payoutSum"]
+        cash_sum = data.get("cashbackSum", 0) - data.get("payoutSum", 0)
         return {"cashback_sum": cash_sum}
 
     else:
@@ -92,6 +92,8 @@ def check_payouts(user_id: str):
 
     if response.status_code == 200:
         data = response.json()
+        if not isinstance(data, list):
+            return []
 
         return [
             {
