@@ -1,6 +1,6 @@
 from src.utils.prompts.classifier_prompts import summarizer_prompt
 from src.utils.gpt_utils import ask_gpt
-from src.configs.settings import gpt_model_4o_mini
+from src.configs.settings import claude_sonnet
 
 
 def summarize(usable_context):
@@ -12,7 +12,7 @@ def summarize(usable_context):
     response = ask_gpt(
         messages=messages,
         max_tok=200,
-        model_gpt=gpt_model_4o_mini
+        model_gpt=claude_sonnet
     )
 
     return response

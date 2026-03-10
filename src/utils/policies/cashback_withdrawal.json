@@ -5,7 +5,7 @@
   "owner": "ml_team",
   "description": "Правила вывода кешбэка",
   "policy": {
-    "minimum_withdraw_sum": 6000,
+    "minimum_withdraw_sum": 2000,
     "payout_status_days_approved": 1000,
     "payout_status_days_is_considering": 1000,
     "currency": "kazakhstani_tenge"

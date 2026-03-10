@@ -11,7 +11,7 @@
   "rules_of_speaking": {
     "lang": "kz",
     "tone": "нейтральный, достық",
-    "must_include": ["Заморозканың максималды мерзімі — {maximum_freezing_days} күн"],
+    "must_include": [],
     "forbidden": ["мы заблокируем ваш аккаунт", "аккаунтыңызды блоктаймыз"]
   },
   "created_at": "2025-09-02T10:00:00Z",

@@ -69,12 +69,12 @@ def extract_answer_from_response(raw_response) -> Tuple[str, str]:
                     answer_text = parsed.get("answer") or ""
                     decision = parsed.get("decision", "response")
                 else:
-                    answer_text = raw_response
+                    answer_text = cleaned
             except json.JSONDecodeError:
                 # Если JSON не парсится - это обычный текст
-                answer_text = raw_response
+                answer_text = cleaned
         else:
-            answer_text = raw_response
+            answer_text = cleaned
 
     # Если это dict - извлекаем поля
     elif isinstance(raw_response, dict):
@@ -239,7 +239,7 @@ def build_response_dict(input_json: Dict, state: Optional[BotState] = None) -> D
             "answer": "",
             "tag": map_intent_to_api_tag(state.intent, state.subintent) if state.intent else "mentor",
             "prediction": confidence,
-            "mode": True,  # Переключение на ментора
+            "mode": False,  # Переключение на ментора
             "close_session": False,
             "session_id": input_json["session_id"],
             "pupil_id": input_json["pupil_id"],
@@ -368,7 +368,24 @@ def run_multi_agent_event(input_json: Dict) -> Dict:
     except Exception as e:
         print("ERROR while processing event")
         print(f"user_id is: {user_id}")
-        raise
+        import traceback
+        traceback.print_exc()
+        return {
+            "answer": "",
+            "tag": "mentor",
+            "prediction": 0.0,
+            "mode": False,
+            "close_session": False,
+            "session_id": input_json["session_id"],
+            "pupil_id": input_json["pupil_id"],
+            "sender_type": input_json["sender_type"],
+            "full_context": input_json["full_context"],
+            "context": input_json["context"],
+            "question": input_json.get("question", ""),
+            "modified_message_time": input_json["modified_message_time"],
+            "session_context": input_json["session_context"],
+            "is_smart_suggestion": False
+        }
 
     finally:
         current_input.current_input = None

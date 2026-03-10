@@ -1,12 +1,12 @@
-from openai import OpenAI
-from src.configs.settings import OPENAI_API_KEY_BASE, date_format, gpt_5_1, gpt_5_2, gpt_model_4o_mini
+from anthropic import Anthropic
+from src.configs.settings import ANTHROPIC_API_KEY, date_format, claude_sonnet
 from typing import Optional, List, Dict, Any
 import re, json, datetime
 from src.utils.classifier.intents import CheckIntent, ValidationLevel, IntentEnum, intent_to_subintent_validator
 from pydantic import ValidationError
 from src.utils.prompts.classifier_prompts import SUBINTENT_PROMPTS
 
-client = OpenAI(api_key=OPENAI_API_KEY_BASE)
+client = Anthropic(api_key=ANTHROPIC_API_KEY)
 
 
 def preprocess_context(context):
@@ -50,41 +50,31 @@ def eval_contexts(our_list_in_string) -> Optional[List[Dict]]:
 
 def ask_gpt(messages: list, max_tok: int, model_gpt: str, response_format=None) -> str:
     print("start ask gpt")
-    if model_gpt in [gpt_5_1, gpt_5_2]:
-        response = client.chat.completions.create(
-            model=model_gpt,
-            max_completion_tokens=max_tok,
-            messages=messages
-        )
 
-    else:
-        if response_format is None:
-            response = client.chat.completions.create(
-                # model="gpt-4o",
-                model=model_gpt,
-                messages=messages,
-                # temperature=0,
-                # max_tokens=max_tok,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0,
-                response_format={"type":"text"})
+    # Извлекаем system message — Claude принимает его отдельным параметром
+    system_content = None
+    user_messages = []
+    for msg in messages:
+        if msg["role"] == "system":
+            system_content = msg["content"]
         else:
-            response = client.chat.completions.create(
-                # model="gpt-4o",
-                model=model_gpt,
-                # messages= [{"role":"user", "content":"хочу получить валидный JSON"}] + messages,
-                messages=messages,
-                # temperature=0,
-                response_format=response_format,
-                # max_tokens=max_tok,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0
-            )
+            user_messages.append(msg)
 
+    # Claude требует хотя бы одно сообщение
+    if not user_messages:
+        user_messages = [{"role": "user", "content": "..."}]
 
-    answer = response.choices[0].message.content
+    kwargs = {
+        "model": model_gpt,
+        "max_tokens": max_tok,
+        "messages": user_messages,
+    }
+    if system_content:
+        kwargs["system"] = system_content
+
+    response = client.messages.create(**kwargs)
+
+    answer = response.content[0].text
 
     print("Answer: " + str(answer))
     return answer
@@ -225,11 +215,6 @@ def find_subintent_prompt(intent: IntentEnum) -> str:
         raise ValueError(f"No subintent prompt found for intent {intent.value}")
 
 
-
-
-
-
-
 def start_asking(dialog_2: str, type_of_ask: str, system_prompt=None, usable_context=None, response_format=None,
                  dict_mini=None):
     if type_of_ask == "big_prompts":
@@ -252,7 +237,7 @@ def start_asking(dialog_2: str, type_of_ask: str, system_prompt=None, usable_con
 
             gpt_answer_prompt = ask_gpt(messages=messages1,
                                         max_tok=400,
-                                        model_gpt="gpt-4.1")
+                                        model_gpt=claude_sonnet)
             return gpt_answer_prompt
 
         except Exception as asking_exception:
@@ -269,7 +254,7 @@ def start_asking(dialog_2: str, type_of_ask: str, system_prompt=None, usable_con
                 mes1.append({"role": "user", "content": dialog_2})
                 gpt_answers.append(ask_gpt(messages=mes1,
                                            max_tok=250,
-                                           model_gpt="gpt-4.1-mini")
+                                           model_gpt=claude_sonnet)
                                    )
 
             for i in range(len(gpt_answers)):
@@ -291,7 +276,7 @@ def start_asking(dialog_2: str, type_of_ask: str, system_prompt=None, usable_con
 
             gpt_answer_prompt = ask_gpt(messages=messages1,
                                         max_tok=200,
-                                        model_gpt="gpt-4.1-mini")
+                                        model_gpt=claude_sonnet)
             return gpt_answer_prompt
 
         except Exception as asking_exception:
@@ -305,7 +290,7 @@ def translate_to_kazakh(text: str) -> str:
         {"role": "system", "content": "Переведи текст на казахский язык. Сохрани смысл и форматирование. Верни только переведённый текст без пояснений."},
         {"role": "user", "content": text}
     ]
-    return ask_gpt(messages, max_tok=1000, model_gpt=gpt_model_4o_mini)
+    return ask_gpt(messages, max_tok=1000, model_gpt=claude_sonnet)
 
 
 # check type ~ json

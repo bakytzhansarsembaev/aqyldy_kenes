@@ -3,7 +3,6 @@ from src.utils.classifier.summary import summarize
 from src.agents.registry import AGENT_REGISTRY
 from src.utils.classifier.classifier import classify
 from src.utils.classifier.intents import IntentEnum, TaskProblemsSubIntentEnum
-from src.utils.gpt_utils import translate_to_kazakh
 
 ALLOWED_INTENTS = {
     IntentEnum.cashback,
@@ -261,28 +260,7 @@ def _process_task_helper_response(state: BotState, agent_result: dict):
 
 
 def language_check_node(state: BotState) -> BotState:
-    if not state.agent_answer:
-        return state
-
-    response = state.agent_answer.get("response", {})
-    if not isinstance(response, dict):
-        return state
-
-    decision = response.get("decision", "response")
-    answer = response.get("answer", "")
-
-    # Пропускаем pass (ментор) и пустые ответы
-    if decision == "pass" or not answer:
-        return state
-
-    # Маркеры русского языка: буквы ё,ъ,ы,э отсутствуют в казахском алфавите
-    russian_markers = set('ёъыэЁЪЫЭ')
-    if any(c in russian_markers for c in answer):
-        print(f"[LangCheck] Russian markers detected, translating to Kazakh for user_id={state.user_id}")
-        translated = translate_to_kazakh(answer)
-        response["answer"] = translated
-        state.agent_answer["response"] = response
-
+    # Платформа всегда на казахском — агенты инструктированы через rules_of_speaking: lang=kz
     return state
 
 

@@ -51,14 +51,10 @@ class PromptBuilder:
         return "\n\n".join(parts)
 
     def build_messages(self):
+        combined_system = self.build_system_prompt() + "\n\n" + self.build_developer_prompt()
         return [
             {
                 "role": "system",
-                "content": self.build_system_prompt()
-            },
-
-            {
-                "role": "developer",
-                "content": self.build_developer_prompt()
+                "content": combined_system
             }
         ]

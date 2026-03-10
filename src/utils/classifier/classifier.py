@@ -1,6 +1,6 @@
 from src.utils.prompts.classifier_prompts import *
 from src.utils.gpt_utils import ask_gpt, validate_response_format, check_type_response, find_subintent_prompt, intent_to_subintent_validator
-from src.configs.settings import DEFAULT_GPT_MODEL, gpt_model_4_1
+from src.configs.settings import DEFAULT_GPT_MODEL, claude_sonnet
 from src.utils.classifier.intents import ValidationLevel
 
 
@@ -22,7 +22,7 @@ def classify(
         messages = system_message + usable_context
         classifier_response = ask_gpt(messages=messages,
                                       max_tok=max_tok,
-                                      model_gpt=gpt_model_4_1)
+                                      model_gpt=claude_sonnet)
 
         # notice: delete_after:
         print(f"classifier_intent_response: {classifier_response}")
@@ -35,7 +35,7 @@ def classify(
         messages = system_message + usable_context
         classifier_response = ask_gpt(messages=messages,
                                       max_tok=max_tok,
-                                      model_gpt=gpt_model_4_1)
+                                      model_gpt=claude_sonnet)
 
         return classifier_response
 

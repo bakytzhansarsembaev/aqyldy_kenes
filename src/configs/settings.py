@@ -4,31 +4,21 @@ from dotenv import load_dotenv
 # Загружаем переменные из .env файла
 load_dotenv()
 
-# openai configs
-OPENAI_API_KEY_BASE = os.getenv("OPENAI_API_KEY")
-OPENAI_API_KEY_TASK_HELPER = os.getenv("OPENAI_API_KEY_TASK_HELPER", OPENAI_API_KEY_BASE)
-ASSISTANT_ID_RUS = 'asst_8VyYl7hjshNOI3zwifUCrNal'
-ASSISTANT_ID_KAZ = 'asst_po2uHM4YGXasWM3D9GKRPB62'
+# Anthropic configs
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
+# Claude models
+claude_sonnet = "claude-sonnet-4-6"
+claude_haiku = "claude-haiku-4-5-20251001"
 
 # API configs
 PROD_URL = 'https://qalan.kz'
 TEST_URL = 'https://test.qalan.kz'
 ML_RESPONSE = '{}/api/mlResponse'
 
-# gpt_models
-gpt_model_4o = "gpt-4o"
-gpt_model_4o_mini = "gpt-4o-mini"
-gpt_model_4_1 = "gpt-4.1"
-gpt_model_4_1_mini = "gpt-4.1-mini"
-gpt_model_5 = "gpt-5"
-gpt_5_1 = "gpt-5.1"
-gpt_5_2 = "gpt-5.2"
-
-
 # !!!ОБЯЗАТЕЛЬНО УКАЗЫВАТЬ, ЧТОБ БЫЛО ОЧЕВИДНО, КУДА СТУЧАТЬСЯ!!!
 USABLE_BRANCH = PROD_URL
-DEFAULT_GPT_MODEL = gpt_model_5
+DEFAULT_GPT_MODEL = claude_sonnet
 
 # Mock mode для тестирования без API
 USE_MOCK_SERVICES = os.getenv("USE_MOCK_SERVICES", "false").lower() == "true"
@@ -48,7 +38,7 @@ RABBIT_PROD_QUEUE = "messages"
 RABBIT_RUSSIAN = "messages_rus"
 
 USABLE_RABBIT_URL = PROD_RABBIT
-USABLE_RABBIT_QUEUE = RABBIT_TEST_QUEUE
+USABLE_RABBIT_QUEUE = RABBIT_PROD_QUEUE
 
 # Qalan.kz API main_token
 MAIN_TOKEN = os.getenv("QALAN_MAIN_TOKEN")

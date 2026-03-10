@@ -1,7 +1,7 @@
 # from src.utils.policies.policy_loader import IntentPolicy
 from src.utils.gpt_utils import ask_gpt
 from src.utils.prompts.prompt_builder import PromptBuilder
-from src.configs.settings import gpt_5_2
+from src.configs.settings import claude_sonnet
 from src.utils.prompts.agent_prompts import base_system_prompt, SYSTEM_PROMPTS, FORMAT_BLOCK
 
 
@@ -68,7 +68,7 @@ class BaseAgent:
             messages=messages,
             response_format=None,  # заменить на json_schema
             max_tok=500,
-            model_gpt=gpt_5_2
+            model_gpt=claude_sonnet
         )
 
         return {
