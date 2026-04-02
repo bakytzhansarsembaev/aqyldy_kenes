@@ -1,11 +1,27 @@
 import requests, json
-from src.configs.settings import USER_CASHBACKS, headers1, USER_LOGIN_PASSWORDS_URL, USER_PAYMENTS, USER_PAYOUTS, USE_MOCK_SERVICES
+from src.configs.settings import USER_CASHBACKS, headers1, USER_LOGIN_PASSWORDS_URL, USER_PAYMENTS, USER_PAYOUTS, USE_MOCK_SERVICES, USER_CURRENT_TASK
 
 if USE_MOCK_SERVICES:
     from src.tools.services.mock_services import (
         mock_cashback_sum, mock_check_users_password,
         mock_check_payments, mock_check_payouts
     )
+
+
+def check_has_subscription(user_id: str) -> bool:
+    """Проверяет наличие активной подписки у пользователя.
+    Возвращает False если нет подписки или подписка пробная."""
+    try:
+        url = USER_CURRENT_TASK.format(user_id)
+        response = requests.get(url=url, headers=headers1, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("isTrialSubscription", False):
+                return False
+            return data.get("has_subscription", True)
+    except Exception:
+        pass
+    return True  # при ошибке не блокируем
 
 
 def cashback_sum(user_id: str):
@@ -23,7 +39,10 @@ def cashback_sum(user_id: str):
     if response.status_code == 200:
         data = response.json()
         cash_sum = data.get("cashbackSum", 0) - data.get("payoutSum", 0)
-        return {"cashback_sum": cash_sum}
+        return {
+            "cashback_sum": cash_sum,
+            "active_cashback_request_status": data.get("activeCashbackRequestStatus"),
+        }
 
     else:
         raise ConnectionError(f"Cashback service {cashback_sum.__name__} doesn't work. status_code is: {response.status_code}")

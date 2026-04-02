@@ -14,7 +14,12 @@
     "lang": "ru",
     "tone": "дружелюбный",
     "must_include": [],
-    "forbidden": []
+    "forbidden": [
+      "freezing",
+      "cashback",
+      "Freezing",
+      "Cashback"
+    ]
   },
   "created_at": "2025-09-02T10:00:00Z",
   "updated_at": "2025-09-02T10:30:00Z"

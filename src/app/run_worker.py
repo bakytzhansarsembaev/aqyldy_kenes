@@ -16,6 +16,8 @@ graph = build_graph(policy_loader=PolicyLoader())
 
 # Минимальный интервал между приветствиями (в минутах)
 GREETING_COOLDOWN_MINUTES = 10
+# Минимальный интервал между повторной отправкой инструкции по кэшбеку (в минутах)
+CASHBACK_COOLDOWN_MINUTES = 60
 
 
 def _get_last_ml_greeting_time(full_context: str) -> Optional[datetime]:
@@ -43,10 +45,54 @@ def _is_greeting_on_cooldown(full_context: str) -> bool:
     return minutes_since_greeting < GREETING_COOLDOWN_MINUTES
 
 
+def _get_last_ml_cashback_time(full_context: str) -> Optional[datetime]:
+    """Получает время последней отправки кэшбек-инструкции от ML из контекста."""
+    try:
+        context_list = json.loads(full_context) if isinstance(full_context, str) else full_context
+        for msg in reversed(context_list):
+            if msg.get("sender_type") == "ML" and msg.get("tag") == "cashback":
+                date_str = msg.get("date")
+                if date_str:
+                    return datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+        return None
+    except (json.JSONDecodeError, ValueError, TypeError):
+        return None
+
+
+def _is_cashback_on_cooldown(full_context: str) -> bool:
+    """Проверяет, была ли недавно отправлена инструкция по кэшбеку."""
+    last_cashback_time = _get_last_ml_cashback_time(full_context)
+    if last_cashback_time is None:
+        return False
+
+    now = datetime.now()
+    minutes_since_cashback = (now - last_cashback_time).total_seconds() / 60
+    return minutes_since_cashback < CASHBACK_COOLDOWN_MINUTES
+
+
+def _try_parse_json(text: str):
+    """Пробует распарсить JSON несколькими способами. Возвращает dict или None."""
+    # Попытка 1: как есть
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Попытка 2: фиксируем невалидные LaTeX-эскейпы (\( \) \[ \] и т.д.)
+    try:
+        fixed = re.sub(r'\\([^"\\/bfnrtu])', r'\\\\\1', text)
+        return json.loads(fixed)
+    except json.JSONDecodeError:
+        pass
+
+    return None
+
+
 def extract_answer_from_response(raw_response) -> Tuple[str, str]:
     """
     Извлекает answer и decision из ответа агента.
     Обрабатывает: строку JSON, dict, вложенные структуры.
+    Если JSON не парсится или в answer попал JSON с decision — эскалируем к ментору (pass).
     """
     answer_text = ""
     decision = "response"
@@ -58,20 +104,19 @@ def extract_answer_from_response(raw_response) -> Tuple[str, str]:
         if cleaned.startswith("```"):
             cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
             cleaned = re.sub(r'\s*```$', '', cleaned)
+            cleaned = cleaned.strip()
 
         # Проверяем, похоже ли на JSON (начинается с { )
         if cleaned.startswith("{"):
-            try:
-                # Фиксируем невалидные JSON-эскейпы от LaTeX: \( \) \[ \] \frac и т.д.
-                fixed = re.sub(r'\\([^"\\/bfnrtu])', r'\\\\\1', cleaned)
-                parsed = json.loads(fixed)
-                if isinstance(parsed, dict):
-                    answer_text = parsed.get("answer") or ""
-                    decision = parsed.get("decision", "response")
-                else:
-                    answer_text = cleaned
-            except json.JSONDecodeError:
-                # Если JSON не парсится - это обычный текст
+            parsed = _try_parse_json(cleaned)
+            if parsed is None:
+                # JSON не парсится ни одним способом → эскалируем к ментору
+                print(f"[extract_answer] JSON parse failed, escalating to mentor. raw={cleaned[:100]}")
+                return "", "pass"
+            if isinstance(parsed, dict):
+                answer_text = parsed.get("answer") or ""
+                decision = parsed.get("decision", "response")
+            else:
                 answer_text = cleaned
         else:
             answer_text = cleaned
@@ -83,6 +128,17 @@ def extract_answer_from_response(raw_response) -> Tuple[str, str]:
 
     else:
         answer_text = str(raw_response) if raw_response else ""
+
+    # Защита: если в answer попал JSON с "decision" → эскалируем к ментору
+    if answer_text and isinstance(answer_text, str):
+        stripped = answer_text.strip()
+        if stripped.startswith("{") and '"decision"' in stripped:
+            print(f"[extract_answer] JSON leaked into answer field, escalating to mentor. answer={stripped[:100]}")
+            return "", "pass"
+
+    # Постобработка: Claude иногда пишет \\n вместо реального переноса строки
+    if answer_text and isinstance(answer_text, str):
+        answer_text = answer_text.replace('\\n', '\n').replace('\\t', '\t')
 
     return answer_text, decision
 
@@ -194,6 +250,8 @@ def map_intent_to_api_tag(intent: str, subintent: str = None) -> str:
 
         # freezing subintents
         if intent_str == "freezing":
+            if subintent_str == "freezing_setter":
+                return "mentor"
             return "freezing"
 
         # cashback subintents
@@ -258,6 +316,26 @@ def build_response_dict(input_json: Dict, state: Optional[BotState] = None) -> D
     # Проверка на повторное приветствие
     if api_tag == "greeting" and _is_greeting_on_cooldown(input_json.get("full_context", "")):
         print(f"[Greeting] Skipping - recent greeting within {GREETING_COOLDOWN_MINUTES} minutes")
+        return {
+            "answer": "",
+            "tag": api_tag,
+            "prediction": confidence,
+            "mode": False,  # Не отвечаем повторно
+            "close_session": False,
+            "session_id": input_json["session_id"],
+            "pupil_id": input_json["pupil_id"],
+            "sender_type": input_json["sender_type"],
+            "full_context": input_json["full_context"],
+            "context": input_json["context"],
+            "question": state.user_message,
+            "modified_message_time": input_json["modified_message_time"],
+            "session_context": input_json["session_context"],
+            "is_smart_suggestion": False
+        }
+
+    # Проверка на повторную отправку кэшбек-инструкции
+    if api_tag == "cashback" and _is_cashback_on_cooldown(input_json.get("full_context", "")):
+        print(f"[Cashback] Skipping - recent cashback message within {CASHBACK_COOLDOWN_MINUTES} minutes")
         return {
             "answer": "",
             "tag": api_tag,

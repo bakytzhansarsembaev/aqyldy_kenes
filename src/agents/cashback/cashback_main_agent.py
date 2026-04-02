@@ -1,6 +1,7 @@
 from src.agents.base import BaseAgent
 from src.utils.classifier.intents import IntentEnum
-from src.tools.services.cashback_service import check_payments, check_payouts, cashback_sum, check_users_password
+from src.tools.services.cashback_service import check_payments, check_payouts, cashback_sum, check_users_password, check_has_subscription
+from src.agents.cashback.cashback_withdrawal_agent import UNSUBSCRIBED_CASHBACK_ANSWER
 import json
 
 
@@ -17,6 +18,17 @@ class CashbackMainAgent(BaseAgent):
             previous_intent=previous_intent,
             previous_subintent=previous_subintent
         )
+
+    def run_agent(self, user_message, summary):
+        if not check_has_subscription(self.user_id):
+            print(f"[CashbackMain] Blocked: no subscription for user_id={self.user_id}")
+            return {
+                "response": {"decision": "response", "answer": UNSUBSCRIBED_CASHBACK_ANSWER},
+                "intent": self.intent,
+                "subintent": self.subintent,
+                "backend_data": None,
+            }
+        return super().run_agent(user_message, summary)
 
     def get_data_from_api(self):
         cash_sum = cashback_sum(self.user_id)

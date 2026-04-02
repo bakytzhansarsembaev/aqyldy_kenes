@@ -48,6 +48,15 @@ class PromptBuilder:
         if self.previous_intent is not None:
             parts.append(f"***Previous conversation context***\nprevious_intent: {self.previous_intent}\nprevious_subintent: {self.previous_subintent}")
 
+        parts.append(
+            "***ЖАУАП ТІЛІ МЕН ҮНДЕУ ФОРМАСЫ — АБСОЛЮТТІ ЕРЕЖЕ***\n"
+            "ТІЛІҢДІ ТЕКСЕР: жауапты тек қазақ тілінде жаз.\n"
+            "Орыс сөздерін, фразаларын немесе сөйлемдерін қолдануға ҚАТАҢ ТЫЙЫМ салынады — тіпті ішінара болса да.\n"
+            "Егер саған орыс тілінде жазса да — тек қазақша жауап бер.\n"
+            "Пайдаланушыға ӘРҚАШАН сыпайы түрде — «сіз» деп үндеу қолдан. «сен» деп үндеуге тыйым салынады.\n"
+            "Бұл ережелер ешқандай жағдайда өзгертілмейді."
+        )
+
         return "\n\n".join(parts)
 
     def build_messages(self):

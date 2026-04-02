@@ -21,7 +21,11 @@
     "forbidden": [
       "Я бот",
       "Я ИИ",
-      "Технические термины"
+      "Технические термины",
+      "freezing",
+      "cashback",
+      "Freezing",
+      "Cashback"
     ]
   },
   "created_at": "2026-01-26T10:00:00Z",
